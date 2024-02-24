@@ -14,9 +14,10 @@
 import 'dotenv/config';
 import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
-import logger from './utils/loggers/logger.js';
+import logger, { intializeError } from './utils/loggers/logger.js';
 import newMemberUtils from './utils/new-member.js';
-import newMemberData from './data/new-member.json';
+import newMemberData from './data/new-member.json' assert { type: 'json' };
+import loadCommands from './utils/loadCommands.js';
 
 // Introductions
 logger.info('==============================');
@@ -32,29 +33,41 @@ const client = new Client({
     partials: [Partials.Channel, Partials.Message]
 });
 
+await intializeError(client);
+
+logger.info('Loading commands into client...');
+await loadCommands(client);
+
 logger.info('Attaching event listeners...');
 client.once(Events.ClientReady, async (ready) => {
     logger.info(`Successfully logged in as ${ready.user.tag}`);
 });
 
-// client.on(Events.InteractionCreate, async (interaction) => {
-//     const categories = interaction.member.guild.channels.cache.filter(
-//         (val) => val.type === 4 && newMemberData['deny-categories'].contains(val.id)
-//     );
+client.on(Events.InteractionCreate, async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
 
-//     console.log(categories);
-// });
+    const name = interaction.commandName;
+    const command = interaction.client.commands.get(name);
+
+    if (!command) await interaction.reply(`No command named ${name}`);
+
+    try {
+        await command.execute(interaction);
+    } catch (err) {
+        logger.error(err, 'Unexpected error on member join!');
+    }
+});
 
 client.on(Events.GuildMemberAdd, async (member) => {
     try {
-        logger.info('====== SECTION START ======');
+        logger.section.START();
         logger.info(`New member detected! ${member.displayName}`);
 
         logger.info('Adding restrictions...');
         await newMemberUtils.addRestrictions(member);
 
         logger.info('Successfully added permissions on categories');
-        logger.info('====== SECTION END ======');
+        logger.section.END();
     } catch (err) {
         logger.error(err, 'Unexpected error on member join!');
     }
@@ -62,9 +75,9 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
 client.on(Events.GuildMemberRemove, async (member) => {
     try {
-        logger.section.start;
+        logger.section.START();
         await newMemberUtils.addRestrictions(member);
-        logger.info('====== SECTION END ======');
+        logger.section.END();
     } catch (err) {
         logger.error(err, 'Unexpected error on member leaving!');
     }
