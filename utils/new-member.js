@@ -1,6 +1,6 @@
 import { GuildMember } from 'discord.js';
 
-import newMemberData from './data/new-member.json';
+import newMemberData from '../data/new-member.json' assert { type: 'json' };
 
 /**
  * Applies restrictions from not being signed up:
