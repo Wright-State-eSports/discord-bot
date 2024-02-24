@@ -3,12 +3,14 @@
  * for any and all information (logging everything is important)
  */
 import pino from 'pino';
-import createTransport from './transport.js';
+import createTransport, { getFormattedDate } from './transport.js';
+import channelList from '../../data/channel-list.json' assert { type: 'json' };
+import { Client } from 'discord.js';
 
 const _info = pino(
     {
         level: 'info',
-        timestamp: pino.stdTimeFunctions.isoTime
+        timestamp: () => `, "time": "${getFormattedDate()}"`
     },
     createTransport('info')
 );
@@ -16,10 +18,19 @@ const _info = pino(
 /**
  * Info level logging for regular logging
  * @param { string } message Message to log
- * @param { boolean? } inform Send a copy of the log to a discord channel
+ * @param { Client? } client Client, if provided, it will send a copy of the logs to the set channels
  */
-async function info(message, inform = false) {
+async function info(message, client = null) {
     _info.info(message);
+
+    if (client) {
+        const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
+        const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
+
+        channels.each((channel) => {
+            channel.send(`INFO: ${message}`);
+        });
+    }
 }
 
 export default info;
