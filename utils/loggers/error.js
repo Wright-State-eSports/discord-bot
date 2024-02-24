@@ -26,15 +26,17 @@ async function error(errorObject, message, client) {
     _error.error(errorObject, message);
 
     const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
-    const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
-    const embed = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('Error Occured')
-        .addFields({ name: message, value: errorObject.message });
+    if (client) {
+        const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
+        const embed = new EmbedBuilder()
+            .setColor('Red')
+            .setTitle('Error Occured')
+            .addFields({ name: message, value: errorObject.message });
 
-    channels.each((channel) => {
-        channel.send({ embed });
-    });
+        channels.each((channel) => {
+            channel.send({ embed });
+        });
+    }
 }
 
 export default error;

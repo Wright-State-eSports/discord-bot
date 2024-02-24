@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, ChannelType, PermissionFlagsBits } from 'discord.js';
 import channelList from '../data/channel-list.json' assert { type: 'json' };
 
 /**
@@ -8,17 +8,18 @@ export default {
     data: new SlashCommandBuilder()
         .setName('announce')
         .setDescription('Sends a message to the set announcement channel')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // admin perms only
         .addStringOption((option) =>
-            option.setName('message').setDescription('Message to announcement')
+            option.setName('message').setDescription('Message to announcement').setRequired(true)
+        )
+        .addAttachmentOption((option) =>
+            option.setName('attachment').setDescription('Attachment to send')
         )
         .addChannelOption((option) =>
             option
                 .setName('channel')
                 .setDescription('The channel to announce to')
                 .addChannelTypes(ChannelType.AnnouncementThread, ChannelType.GuildText)
-        )
-        .addAttachmentOption((option) =>
-            option.setName('attachment').setDescription('Attachment to send')
         ),
 
     async execute(interaction) {
@@ -29,7 +30,9 @@ export default {
          */
         const channel =
             interaction.options.getChannel('channel') ??
-            channelList['announcements']['default'] ??
+            interaction.guild.channels.cache.find((ch) =>
+                channelList['announcements']['default'].includes(ch.id)
+            ) ??
             false;
         const attachment = interaction.options.getAttachment('attachment');
 
@@ -52,7 +55,13 @@ export default {
             return;
         }
 
-        channel.send({ content: message, files: [attachment] });
+        const payload = {
+            content: message
+        };
+
+        if (attachment) payload.files = [attachment];
+
+        channel.send(payload);
         interaction.reply({ content: 'Message Sent!', ephemeral: true });
     }
 };
