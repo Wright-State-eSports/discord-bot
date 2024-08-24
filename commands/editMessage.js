@@ -4,6 +4,7 @@ import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
  * @type {import('../typedefs').Command}
  */
 export default {
+    admin: true,
     data: new SlashCommandBuilder()
         .setName('editmessage')
         .setDescription('Edits a sent message by this bot')

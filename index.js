@@ -29,7 +29,11 @@ logger.info('Booting up...');
 logger.info('Creating client...');
 const TOKEN = process.env._TOKEN_SECRET;
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers
+    ],
     partials: [Partials.Channel, Partials.Message]
 });
 
@@ -43,6 +47,9 @@ client.once(Events.ClientReady, async (ready) => {
     logger.info(`Successfully logged in as ${ready.user.tag}`);
 });
 
+/**
+ * When any interaction is detected
+ */
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
@@ -58,13 +65,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 });
 
+/**
+ * When someone joins the server
+ */
 client.on(Events.GuildMemberAdd, async (member) => {
     try {
         logger.section.START();
         logger.info(`New member detected! ${member.displayName}`);
 
-        logger.info('Adding restrictions...');
-        await newMemberUtils.addRestrictions(member);
+        newMemberUtils.addRestrictions(member);
 
         logger.info('Successfully added permissions on categories');
         logger.section.END();
@@ -73,21 +82,16 @@ client.on(Events.GuildMemberAdd, async (member) => {
     }
 });
 
-client.on(Events.GuildMemberRemove, async (member) => {
-    try {
-        logger.section.START();
-        await newMemberUtils.addRestrictions(member);
-        logger.section.END();
-    } catch (err) {
-        logger.error(err, 'Unexpected error on member leaving!');
-    }
-});
+/**
+ * When someone leaves the server (voluntarily or non-voluntarily)
+ */
+client.on(Events.GuildMemberRemove, async (member) => {});
 
-client.on(Events.GuildMemberUpdate, async (_old, newMember) => {
-    if (!newMember.roles.has(newMemberData['roles']['not-signed-up'])) {
-        await newMemberUtils.addRestrictions(member);
-    }
-});
+/**
+ * When a member of the server has something updated about them
+ * nickname, roles, etc...
+ */
+client.on(Events.GuildMemberUpdate, async (_old, newMember) => {});
 
 logger.info('Logging in...');
 client.login(TOKEN);

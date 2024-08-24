@@ -5,6 +5,7 @@ import channelList from '../data/channel-list.json' assert { type: 'json' };
  * @type {import('../typedefs.js').Command}
  */
 export default {
+    admin: true,
     data: new SlashCommandBuilder()
         .setName('announce')
         .setDescription('Sends a message to the set announcement channel')
