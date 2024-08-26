@@ -32,6 +32,8 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildWebhooks,
+        GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMembers
     ],
     partials: [Partials.Channel, Partials.Message]
@@ -47,11 +49,22 @@ client.once(Events.ClientReady, async (ready) => {
     logger.info(`Successfully logged in as ${ready.user.tag}`);
 });
 
+client.on(Events.MessageCreate, async (message) => {
+    if (message.channelId !== '721478998084812951' || !message.webhookId) return;
+
+    console.log('Running');
+    console.log(message);
+});
+
 /**
  * When any interaction is detected
  */
 client.on(Events.InteractionCreate, async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
+    logger.info('test');
+    logger.info(interaction.message);
+    logger.info(interaction.webhook);
+
+    if (!interaction.isChatInputCommand() && !interaction.message.webhookId) return;
 
     const name = interaction.commandName;
     const command = interaction.client.commands.get(name);
