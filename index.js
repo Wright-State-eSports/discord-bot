@@ -12,7 +12,7 @@
  * the discord API
  */
 import 'dotenv/config';
-import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
+import { Events, GatewayIntentBits, Client, Partials, EmbedBuilder } from 'discord.js';
 
 import logger, { intializeError } from './utils/loggers/logger.js';
 import newMemberUtils from './utils/new-member.js';
@@ -52,8 +52,58 @@ client.once(Events.ClientReady, async (ready) => {
 client.on(Events.MessageCreate, async (message) => {
     if (message.channelId !== '721478998084812951' || !message.webhookId) return;
 
-    console.log('Running');
-    console.log(message);
+    logger.section.START();
+    logger.info('Webhook data received... Parsing data');
+
+    try {
+        let data = JSON.parse(message.content);
+        let fetchUser = await message.guild.members.fetch({ query: data.username, limit: 1 });
+        let embed = new EmbedBuilder();
+
+        logger.info('Parse successful!');
+
+        // User isn't in discord
+        if (fetchUser.size === 0) {
+            logger.info('User not in discord');
+            embed
+                .setColor('Red')
+                .setTitle('User not found in Discord')
+                .addFields(
+                    { name: 'Name', value: data.name },
+                    { name: 'Username', value: data.username },
+                    { name: 'WSU Email', value: data.email }
+                );
+
+            // If user does exist in discord
+        } else {
+            logger.info('User found!');
+
+            let user = fetchUser.at(0).user;
+            embed
+                .setColor('Green')
+                .setTitle('New Member')
+                .setThumbnail(user.displayAvatarURL())
+                .addFields(
+                    { name: 'Name', value: data.name },
+                    { name: 'Discord @', value: `<@${user.id}>` },
+                    { name: 'WSU Email', value: data.email }
+                );
+        }
+
+        logger.info('Sending embed with related data');
+        message.channel.send({
+            embeds: [embed]
+        });
+
+        logger.info('Deleting webhook message');
+        // finally delete the previous message
+        message.delete();
+        logger.section.END();
+    } catch (err) {
+        logger.error('Error occurred parsing data');
+        logger.error(err);
+        logger.section.END();
+    }
 });
 
 /**
