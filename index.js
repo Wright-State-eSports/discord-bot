@@ -12,10 +12,10 @@
  * the discord API
  */
 import 'dotenv/config';
-import { Events, GatewayIntentBits, Client, Partials, EmbedBuilder } from 'discord.js';
+import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
 import logger, { intializeError } from './utils/loggers/logger.js';
-import newMemberUtils from './utils/new-member.js';
+import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
 import newMemberData from './data/new-member.json' assert { type: 'json' };
 import loadCommands from './utils/loadCommands.js';
 
@@ -49,82 +49,62 @@ client.once(Events.ClientReady, async (ready) => {
     logger.info(`Successfully logged in as ${ready.user.tag}`);
 });
 
-client.on(Events.MessageCreate, async (message) => {
-    if (message.channelId !== '721478998084812951' || !message.webhookId) return;
-
-    logger.section.START();
-    logger.info('Webhook data received... Parsing data');
-
-    try {
-        let data = JSON.parse(message.content);
-        let fetchUser = await message.guild.members.fetch({ query: data.username, limit: 1 });
-        let embed = new EmbedBuilder();
-
-        logger.info('Parse successful!');
-
-        // User isn't in discord
-        if (fetchUser.size === 0) {
-            logger.info('User not in discord');
-            embed
-                .setColor('Red')
-                .setTitle('User not found in Discord')
-                .addFields(
-                    { name: 'Name', value: data.name },
-                    { name: 'Username', value: data.username },
-                    { name: 'WSU Email', value: data.email }
-                );
-
-            // If user does exist in discord
-        } else {
-            logger.info('User found!');
-
-            let user = fetchUser.at(0).user;
-            embed
-                .setColor('Green')
-                .setTitle('New Member')
-                .setThumbnail(user.displayAvatarURL())
-                .addFields(
-                    { name: 'Name', value: data.name },
-                    { name: 'Discord @', value: `<@${user.id}>` },
-                    { name: 'WSU Email', value: data.email }
-                );
-        }
-
-        logger.info('Sending embed with related data');
-        message.channel.send({
-            embeds: [embed]
-        });
-
-        logger.info('Deleting webhook message');
-        // finally delete the previous message
-        message.delete();
-        logger.section.END();
-    } catch (err) {
-        logger.error('Error occurred parsing data');
-        logger.error(err);
-        logger.section.END();
-    }
-});
+client.on(Events.MessageCreate, initiateApprovalEmbed);
 
 /**
  * When any interaction is detected
  */
 client.on(Events.InteractionCreate, async (interaction) => {
-    logger.info('test');
-    logger.info(interaction.message);
-    logger.info(interaction.webhook);
+    if (interaction.isChatInputCommand()) {
+        const name = interaction.commandName;
+        const command = interaction.client.commands.get(name);
 
-    if (!interaction.isChatInputCommand() && !interaction.message.webhookId) return;
+        if (!command) await interaction.reply(`No command named ${name}`);
 
-    const name = interaction.commandName;
-    const command = interaction.client.commands.get(name);
+        try {
+            await command.execute(interaction);
+        } catch (err) {
+            logger.error(err, 'Unexpected error on member join!');
+        }
+    } else if (interaction.isButton()) {
+        if (interaction.component.customId === 'approveMember') {
+            logger.section.START();
+            logger.info('Approve Member pressed');
+            logger.info('Getting user data');
 
-    if (!command) await interaction.reply(`No command named ${name}`);
+            let data = interaction.message.embeds[0];
+            let userId = data.fields[1].value.substring(2).replace('>', '');
 
-    try {
-        await command.execute(interaction);
-    } catch (err) {
-        logger.error(err, 'Unexpected error on member join!');
+            let user = await interaction.guild.members.fetch(userId);
+
+            // Raider - 487305397204418560
+            // Not Signed Up - 512838063152562194
+            newMemberData.roles = {
+                'not-signed-up': '1278728082311876668',
+                'raider': '1278728114616144035'
+            };
+
+            logger.info('Attaching appropriate roles...');
+            user.roles.add(newMemberData.roles['raider']);
+            user.roles.remove(newMemberData.roles['not-signed-up']);
+
+            logger.info('Finished');
+            logger.section.END();
+
+            fetch(
+                'https://script.googleusercontent.com/macros/echo?user_content_key=GZISSAWbLDA93yKzuveRzuq5bo4cZeq4aNMkVMXFE-rLSOIHhucqm7uoMs3FPY7D97wsow_58kiVo7iIv0C6dms612916w1xm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnFfUzzoqNE0MUw62i8pChcS84Z4oz-iYWShi5sGlS3sNByXAu-XjCrG3pqSQwHidtg&lib=MSwKSujVhP70LHjPtvPRD9f5PjXsBiptZ',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: user.user.username
+                    })
+                }
+            );
+
+            interaction.reply({
+                content: 'Done!'
+            });
+        }
     }
 });
 
@@ -136,7 +116,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
         logger.section.START();
         logger.info(`New member detected! ${member.displayName}`);
 
-        newMemberUtils.addRestrictions(member);
+        addRestrictions(member);
 
         logger.info('Successfully added permissions on categories');
         logger.section.END();
