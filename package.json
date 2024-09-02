@@ -14,6 +14,7 @@
     "dependencies": {
         "discord.js": "^14.14.1",
         "dotenv": "^16.4.4",
+        "googleapis": "^143.0.0",
         "pino": "^8.19.0",
         "pino-pretty": "^10.3.1"
     }

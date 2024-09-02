@@ -17,7 +17,9 @@ import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 import logger, { intializeError } from './utils/loggers/logger.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
 import newMemberData from './data/new-member.json' assert { type: 'json' };
+import { approveMember, cancelApproval } from './interactions/buttons/index.js';
 import loadCommands from './utils/loadCommands.js';
+import token from './accessToken.js';
 
 // Introductions
 logger.info('==============================');
@@ -40,6 +42,7 @@ const client = new Client({
 });
 
 await intializeError(client);
+await token.initToken();
 
 logger.info('Loading commands into client...');
 await loadCommands(client);
@@ -67,43 +70,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
             logger.error(err, 'Unexpected error on member join!');
         }
     } else if (interaction.isButton()) {
-        if (interaction.component.customId === 'approveMember') {
-            logger.section.START();
-            logger.info('Approve Member pressed');
-            logger.info('Getting user data');
-
-            let data = interaction.message.embeds[0];
-            let userId = data.fields[1].value.substring(2).replace('>', '');
-
-            let user = await interaction.guild.members.fetch(userId);
-
-            // Raider - 487305397204418560
-            // Not Signed Up - 512838063152562194
-            newMemberData.roles = {
-                'not-signed-up': '1278728082311876668',
-                'raider': '1278728114616144035'
-            };
-
-            logger.info('Attaching appropriate roles...');
-            user.roles.add(newMemberData.roles['raider']);
-            user.roles.remove(newMemberData.roles['not-signed-up']);
-
-            logger.info('Finished');
-            logger.section.END();
-
-            fetch(
-                'https://script.googleusercontent.com/macros/echo?user_content_key=GZISSAWbLDA93yKzuveRzuq5bo4cZeq4aNMkVMXFE-rLSOIHhucqm7uoMs3FPY7D97wsow_58kiVo7iIv0C6dms612916w1xm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnFfUzzoqNE0MUw62i8pChcS84Z4oz-iYWShi5sGlS3sNByXAu-XjCrG3pqSQwHidtg&lib=MSwKSujVhP70LHjPtvPRD9f5PjXsBiptZ',
-                {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        username: user.user.username
-                    })
-                }
-            );
-
-            interaction.reply({
-                content: 'Done!'
-            });
+        switch (interaction.component.customId) {
+            case 'approveMember':
+                approveMember(interaction);
+                break;
+            case 'cancelApproval':
+                cancelApproval(interaction);
+                break;
         }
     }
 });
