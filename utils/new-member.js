@@ -19,7 +19,7 @@ export async function addRestrictions(member) {
 }
 
 export async function initiateApprovalEmbed(message) {
-    if (message.channelId !== '721478998084812951' || message.webhookId !== '1276930937493524543')
+    if (message.channelId !== '1280328507905282068' || message.webhookId !== '1280328619704451114')
         return;
 
     logger.section.START();
