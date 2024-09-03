@@ -14,7 +14,7 @@
 import 'dotenv/config';
 import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
-import logger, { intializeError } from './utils/loggers/logger.js';
+import logger from './utils/loggers/logger.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
 import { approveMember, cancelApproval } from './interactions/buttons/index.js';
 import loadCommands from './utils/loadCommands.js';
