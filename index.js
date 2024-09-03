@@ -16,7 +16,6 @@ import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
 import logger, { intializeError } from './utils/loggers/logger.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
-import newMemberData from './data/new-member.json' assert { type: 'json' };
 import { approveMember, cancelApproval } from './interactions/buttons/index.js';
 import loadCommands from './utils/loadCommands.js';
 import token from './accessToken.js';
@@ -41,7 +40,7 @@ const client = new Client({
     partials: [Partials.Channel, Partials.Message]
 });
 
-await intializeError(client);
+// await intializeError(client);
 await token.initToken();
 
 logger.info('Loading commands into client...');

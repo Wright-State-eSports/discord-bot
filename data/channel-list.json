@@ -1,11 +1,11 @@
 {
     "logs": {
-        "default": ["721486277933006929"],
+        "default": [],
         "info": [],
         "error": [],
         "fatal": []
     },
     "announcements": {
-        "default": "721486277933006929"
+        "default": ""
     }
 }

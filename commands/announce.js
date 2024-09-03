@@ -10,17 +10,18 @@ export default {
         .setName('announce')
         .setDescription('Sends a message to the set announcement channel')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // admin perms only
-        .addStringOption((option) =>
-            option.setName('message').setDescription('Message to announcement').setRequired(true)
-        )
-        .addAttachmentOption((option) =>
-            option.setName('attachment').setDescription('Attachment to send')
-        )
         .addChannelOption((option) =>
             option
                 .setName('channel')
                 .setDescription('The channel to announce to')
                 .addChannelTypes(ChannelType.AnnouncementThread, ChannelType.GuildText)
+                .setRequired(true)
+        )
+        .addStringOption((option) =>
+            option.setName('message').setDescription('Message to announcement').setRequired(true)
+        )
+        .addAttachmentOption((option) =>
+            option.setName('attachment').setDescription('Attachment to send')
         ),
 
     async execute(interaction) {
@@ -29,12 +30,7 @@ export default {
         /**
          * @type {import('discord.js').Channel | false}
          */
-        const channel =
-            interaction.options.getChannel('channel') ??
-            interaction.guild.channels.cache.find((ch) =>
-                channelList['announcements']['default'].includes(ch.id)
-            ) ??
-            false;
+        const channel = interaction.options.getChannel('channel');
         const attachment = interaction.options.getAttachment('attachment');
 
         if (!message && !attachment) {
@@ -45,16 +41,16 @@ export default {
             return;
         }
 
-        if (!channel) {
-            interaction.reply({
-                content:
-                    'Channel not provided and default announcement channel is not set up. \n' +
-                    'Either add a channel to the command option, \n' +
-                    'or use /settings to add a default announcement channel',
-                ephemeral: true
-            });
-            return;
-        }
+        // if (!channel) {
+        //     interaction.reply({
+        //         content:
+        //             'Channel not provided and default announcement channel is not set up. \n' +
+        //             'Either add a channel to the command option, \n' +
+        //             'or use /settings to add a default announcement channel',
+        //         ephemeral: true
+        //     });
+        //     return;
+        // }
 
         const payload = {
             content: message

@@ -20,10 +20,6 @@ async function cancelApproval(interaction) {
 
     // Raider - 487305397204418560
     // Not Signed Up - 512838063152562194
-    newMemberData.roles = {
-        'not-signed-up': '1278728082311876668',
-        'raider': '1278728114616144035'
-    };
 
     logger.info('Attaching appropriate roles...');
     user.roles.add(newMemberData.roles['not-signed-up']);

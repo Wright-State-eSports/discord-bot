@@ -4,7 +4,7 @@
 import pino from 'pino';
 import createTransport, { getFormattedDate } from './transport.js';
 import { EmbedBuilder, Client } from 'discord.js';
-import channelList from '../../data/channel-list.json' assert { type: 'json' };
+// import channelList from '../../data/channel-list.json' assert { type: 'json' };
 
 const _error = pino(
     {
@@ -22,21 +22,21 @@ const _error = pino(
  * @param {string} message Message to log
  * @param {Client} client Client object to be able to send error message to the discord channel
  */
-async function error(errorObject, message, client) {
+async function error(errorObject, message /**,client*/) {
     _error.error(errorObject, message);
 
-    const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
-    if (client) {
-        const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
-        const embed = new EmbedBuilder()
-            .setColor('Red')
-            .setTitle('Error Occured')
-            .addFields({ name: message, value: errorObject.message });
+    // const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
+    // if (client) {
+    //     const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
+    //     const embed = new EmbedBuilder()
+    //         .setColor('Red')
+    //         .setTitle('Error Occured')
+    //         .addFields({ name: message, value: errorObject.message });
 
-        channels.each((channel) => {
-            channel.send({ embed });
-        });
-    }
+    //     channels.each((channel) => {
+    //         channel.send({ embed });
+    //     });
+    // }
 }
 
 export default error;
