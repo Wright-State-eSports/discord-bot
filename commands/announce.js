@@ -14,7 +14,7 @@ export default {
             option
                 .setName('channel')
                 .setDescription('The channel to announce to')
-                .addChannelTypes(ChannelType.AnnouncementThread, ChannelType.GuildText)
+                .addChannelTypes(ChannelType.GuildAnnouncement, ChannelType.GuildText)
                 .setRequired(true)
         )
         .addStringOption((option) =>
