@@ -41,16 +41,14 @@ export default {
             return;
         }
 
-        // if (!channel) {
-        //     interaction.reply({
-        //         content:
-        //             'Channel not provided and default announcement channel is not set up. \n' +
-        //             'Either add a channel to the command option, \n' +
-        //             'or use /settings to add a default announcement channel',
-        //         ephemeral: true
-        //     });
-        //     return;
-        // }
+         if (!channel) {
+             interaction.reply({
+                 content:
+		     'Please provide a channel',
+                 ephemeral: true
+             });
+             return;
+         }
 
         const payload = {
             content: message

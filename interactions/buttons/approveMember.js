@@ -25,7 +25,7 @@ async function approveMember(interaction) {
     logger.info('Sending updates to sheet');
 
     let res = await fetch(
-        'https://script.google.com/macros/s/AKfycbwDubwP1omJYmNpl5YdetYD8mGG9vGlNG6YYSDwot4/dev',
+        'https://script.google.com/macros/s/AKfycbxDT-veY2NcRZD_yg_lZUQTfR_uzHIG8tRBjZAONTV7/dev',
         {
             method: 'POST',
             headers: {

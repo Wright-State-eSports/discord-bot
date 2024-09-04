@@ -57,6 +57,8 @@ client.on(Events.MessageCreate, initiateApprovalEmbed);
  * When any interaction is detected
  */
 client.on(Events.InteractionCreate, async (interaction) => {
+    if (!interaction.member.roles.cache.has('546394309688164364')) return;
+	    
     if (interaction.isChatInputCommand()) {
         const name = interaction.commandName;
         const command = interaction.client.commands.get(name);
