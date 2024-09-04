@@ -14,7 +14,6 @@
 import 'dotenv/config';
 import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
-
 import logger from './utils/loggers/logger.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
 import { approveMember, cancelApproval } from './interactions/buttons/index.js';
@@ -36,7 +35,8 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildWebhooks,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildPresences
     ],
     partials: [Partials.Channel, Partials.Message]
 });

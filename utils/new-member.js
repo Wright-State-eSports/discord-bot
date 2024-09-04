@@ -3,7 +3,8 @@ import {
     EmbedBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ActionRowBuilder
+    ActionRowBuilder,
+    Message
 } from 'discord.js';
 
 import Fuse from 'fuse.js';
@@ -20,6 +21,11 @@ export async function addRestrictions(member) {
     member.roles.add(newMemberData['roles']['not-signed-up']);
 }
 
+/**
+ *
+ * @param {Message} message
+ * @returns
+ */
 export async function initiateApprovalEmbed(message) {
     if (message.channelId !== '1280328507905282068' || message.webhookId !== '1280328619704451114')
         return;
@@ -31,14 +37,19 @@ export async function initiateApprovalEmbed(message) {
         const data = JSON.parse(message.content);
 
         // Find the user in the discord server
-        let fetchUser = await message.guild.members.fetch();
-        console.log(fetchUser.toJSON());
+        let notSignedUp = message.guild.roles.cache.find(
+            (role) => role.id == newMemberData.roles['not-signed-up']
+        );
+
+        let fetchUser = notSignedUp.members;
+
         const fuse = new Fuse(fetchUser.toJSON(), {
-            keys: ['user.user.username']
+            keys: ['user.username']
         });
 
-
         fetchUser = fuse.search(data.username);
+
+        console.log('result');
 
         console.log(fetchUser);
 
@@ -65,7 +76,7 @@ export async function initiateApprovalEmbed(message) {
             // If user does exist in discord
         } else {
             logger.info('User found!');
-            const user = fetchUser.at(0).user;
+            const user = fetchUser[0].item.user;
 
             const embed = new EmbedBuilder()
                 .setColor(data.member ? 'Green' : 'Grey')
