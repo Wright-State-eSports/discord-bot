@@ -4,7 +4,7 @@
  */
 import pino from 'pino';
 import createTransport, { getFormattedDate } from './transport.js';
-import channelList from '../../data/channel-list.json' assert { type: 'json' };
+// import channelList from '../../data/channel-list.json' assert { type: 'json' };
 import { Client } from 'discord.js';
 
 const _info = pino(
@@ -23,14 +23,14 @@ const _info = pino(
 async function info(message, client = null) {
     _info.info(message);
 
-    if (client) {
-        const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
-        const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
+    // if (client) {
+    //     const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
+    //     const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
 
-        channels.each((channel) => {
-            channel.send(`INFO: ${message}`);
-        });
-    }
+    //     channels.each((channel) => {
+    //         channel.send(`INFO: ${message}`);
+    //     });
+    // }
 }
 
 export default info;

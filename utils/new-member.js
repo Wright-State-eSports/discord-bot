@@ -6,6 +6,8 @@ import {
     ActionRowBuilder
 } from 'discord.js';
 
+import Fuse from 'fuse.js';
+
 import logger from '../utils/loggers/logger.js';
 import newMemberData from '../data/new-member.json' assert { type: 'json' };
 
@@ -26,16 +28,24 @@ export async function initiateApprovalEmbed(message) {
     logger.info('Webhook data received... Parsing data');
 
     try {
-        let data = JSON.parse(message.content);
+        const data = JSON.parse(message.content);
 
         // Find the user in the discord server
-        let fetchUser = await message.guild.members.fetch({ query: data.username });
-        fetchUser = fetchUser.filter((user) => user.user.username === data.username);
+        let fetchUser = await message.guild.members.fetch();
+        console.log(fetchUser.toJSON());
+        const fuse = new Fuse(fetchUser.toJSON(), {
+            keys: ['user.user.username']
+        });
+
+
+        fetchUser = fuse.search(data.username);
+
+        console.log(fetchUser);
 
         logger.info('Parse successful!');
 
         // User isn't in discord
-        if (fetchUser.size === 0) {
+        if (fetchUser.length === 0) {
             logger.info('User not in discord');
             const embed = new EmbedBuilder()
                 .setColor('Red')

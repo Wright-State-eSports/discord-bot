@@ -16,7 +16,7 @@ async function approveMember(interaction) {
 
     // Raider - 487305397204418560
     // Not Signed Up - 512838063152562194
-
+    // Remove the not signed up role and give them the raider role
     logger.info('Attaching appropriate roles...');
     user.roles.add(newMemberData.roles['raider']);
     user.roles.remove(newMemberData.roles['not-signed-up']);
@@ -38,7 +38,15 @@ async function approveMember(interaction) {
             })
         }
     );
-    console.log(res.status);
+
+    if (res.status == 201) logger.info('Success!');
+    else {
+        logger.info('Something went wrong: Status code: ' + res.status);
+        logger.section.START();
+        logger.info('Dumping response');
+        logger.info(res);
+        logger.section.END();
+    }
 
     logger.info('Success!');
     logger.info('Updating buttons');

@@ -14,6 +14,7 @@
 import 'dotenv/config';
 import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
+
 import logger from './utils/loggers/logger.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
 import { approveMember, cancelApproval } from './interactions/buttons/index.js';
@@ -40,9 +41,15 @@ const client = new Client({
     partials: [Partials.Channel, Partials.Message]
 });
 
-// await intializeError(client);
 await token.initToken();
 
+// Every 14 minutes, the token will be refreshed
+logger.info('Setting up token refresher...');
+setInterval(async () => {
+    await token.initToken();
+}, 1000 * 60 * 14);
+
+// loads all the commands to discord's rest api
 logger.info('Loading commands into client...');
 await loadCommands(client);
 
@@ -51,6 +58,10 @@ client.once(Events.ClientReady, async (ready) => {
     logger.info(`Successfully logged in as ${ready.user.tag}`);
 });
 
+/**
+ * When there is a message, we will try to check if it's in a specific channel
+ * and if it's a webhook
+ */
 client.on(Events.MessageCreate, initiateApprovalEmbed);
 
 /**
@@ -58,7 +69,7 @@ client.on(Events.MessageCreate, initiateApprovalEmbed);
  */
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.member.roles.cache.has('546394309688164364')) return;
-	    
+
     if (interaction.isChatInputCommand()) {
         const name = interaction.commandName;
         const command = interaction.client.commands.get(name);
