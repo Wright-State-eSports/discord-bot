@@ -34,12 +34,12 @@ async function approveMember(interaction) {
             },
             body: JSON.stringify({
                 mode: 'approve',
-                username: user.user.username
+                name: data.fields[0].value
             })
         }
     );
 
-    if (res.status == 201) logger.info('Success!');
+    if (res.status == 200) logger.info('Success!');
     else {
         logger.info('Something went wrong: Status code: ' + res.status);
         logger.section.START();
