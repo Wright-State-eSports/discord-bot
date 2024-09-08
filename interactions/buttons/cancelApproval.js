@@ -39,7 +39,8 @@ async function cancelApproval(interaction) {
             },
             body: JSON.stringify({
                 mode: 'disapprove',
-                username: data.fields[0].value
+                username: data.fields[0].value,
+                rowNum: data.fields[4].value
             })
         }
     );

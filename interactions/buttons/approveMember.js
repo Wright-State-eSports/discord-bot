@@ -34,7 +34,8 @@ async function approveMember(interaction) {
             },
             body: JSON.stringify({
                 mode: 'approve',
-                name: data.fields[0].value
+                name: data.fields[0].value,
+                rowNum: data.fields[4].value
             })
         }
     );

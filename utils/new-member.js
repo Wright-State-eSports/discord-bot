@@ -4,7 +4,8 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ActionRowBuilder,
-    Message
+    Message,
+    User
 } from 'discord.js';
 
 import Fuse from 'fuse.js';
@@ -49,10 +50,6 @@ export async function initiateApprovalEmbed(message) {
 
         fetchUser = fuse.search(data.username);
 
-        console.log('result');
-
-        console.log(fetchUser);
-
         logger.info('Parse successful!');
 
         // User isn't in discord
@@ -76,23 +73,38 @@ export async function initiateApprovalEmbed(message) {
             // If user does exist in discord
         } else {
             logger.info('User found!');
+            /**
+             * @type { User }
+             */
             const user = fetchUser[0].item.user;
 
-            const embed = new EmbedBuilder()
-                .setColor(data.member ? 'Green' : 'Grey')
-                .setTitle(data.member ? 'New Member' : 'New Guest')
-                .setThumbnail(user.displayAvatarURL())
-                .addFields(
-                    { name: 'Name', value: data.name },
-                    { name: 'Discord @', value: `<@${user.id}>` },
-                    { name: 'Email', value: data.email }
-                );
+            const embed = new EmbedBuilder();
+
+            if (data.member)
+                embed
+                    .setColor('Green')
+                    .setTitle('New Member')
+                    .setThumbnail(user.displayAvatarURL())
+                    .addFields(
+                        { name: 'Name', value: data.name },
+                        { name: 'Discord @', value: `<@${user.id}>` },
+                        { name: 'Discord Username', value: data.username },
+                        { name: 'Email', value: data.email },
+                        { name: 'Sheet Row', value: `${data.rowNum}` }
+                    );
+            else embed
+                    .setColor('Gray')
+                    .setTitle('New Guest')
+                    .setThumbnail(user.displayAvatarURL())
+                    .addFields(
+                        { name: 'Name', value: data}
+                    )
 
             const row = new ActionRowBuilder();
             const approve = new ButtonBuilder()
-                .setCustomId(data.member ? 'approveMember' : 'approveGuest')
-                .setLabel(data.member ? 'Approve Member' : 'Approve Guest')
-                .setStyle(data.member ? ButtonStyle.Success : ButtonStyle.Primary);
+                .setCustomId('approveMember')
+                .setLabel('Approve Member')
+                .setStyle(ButtonStyle.Success);
 
             const engageLink = new ButtonBuilder()
                 .setLabel('Engage')
