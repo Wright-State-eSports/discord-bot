@@ -92,19 +92,24 @@ export async function initiateApprovalEmbed(message) {
                         { name: 'Email', value: data.email },
                         { name: 'Sheet Row', value: `${data.rowNum}` }
                     );
-            else embed
+            else
+                embed
                     .setColor('Gray')
                     .setTitle('New Guest')
                     .setThumbnail(user.displayAvatarURL())
                     .addFields(
-                        { name: 'Name', value: data}
-                    )
+                        { name: 'Name', value: data },
+                        { name: 'Discord @', value: `<@${user.id}>` },
+                        { name: 'Discord Username', value: data.username },
+                        { name: 'Email', value: data.email },
+                        { name: 'Purpose of joining', value: data.purpose }
+                    );
 
             const row = new ActionRowBuilder();
             const approve = new ButtonBuilder()
-                .setCustomId('approveMember')
-                .setLabel('Approve Member')
-                .setStyle(ButtonStyle.Success);
+                .setCustomId(data.member ? 'approveMember' : 'approveGuest')
+                .setLabel(data.member ? 'Approve Member' : 'Approve Guest')
+                .setStyle(data.member ? ButtonStyle.Success : ButtonStyle.Secondary);
 
             const engageLink = new ButtonBuilder()
                 .setLabel('Engage')

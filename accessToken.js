@@ -5,7 +5,7 @@ import logger from './utils/loggers/logger.js';
 export const accessToken = {
     token: undefined,
     async initToken() {
-        logger.info('Initializing auth token...');
+        logger.info('Refreshing auth token...');
 
         const auth = new google.auth.JWT(
             'rowdy-raider@rowdyraider.iam.gserviceaccount.com',

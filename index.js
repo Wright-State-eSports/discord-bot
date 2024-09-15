@@ -47,7 +47,7 @@ await token.initToken();
 logger.info('Setting up token refresher...');
 setInterval(async () => {
     await token.initToken();
-}, 1000 * 60 * 14);
+}, 1000 * 60 * 10);
 
 // loads all the commands to discord's rest api
 logger.info('Loading commands into client...');

@@ -1,4 +1,4 @@
-import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { ButtonBuilder, ButtonStyle, ActionRowBuilder, RoleManager } from 'discord.js';
 
 import logger from '../../utils/loggers/logger.js';
 import newMemberData from '../../data/new-member.json' assert { type: 'json' };
@@ -18,8 +18,9 @@ async function approveMember(interaction) {
     // Not Signed Up - 512838063152562194
     // Remove the not signed up role and give them the raider role
     logger.info('Attaching appropriate roles...');
-    user.roles.add(newMemberData.roles['raider']);
-    user.roles.remove(newMemberData.roles['not-signed-up']);
+
+    await user.roles.add(newMemberData.roles['raider']);
+    await user.roles.remove(newMemberData.roles['not-signed-up']);
 
     logger.info('Finished');
     logger.info('Sending updates to sheet');

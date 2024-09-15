@@ -23,8 +23,8 @@ async function cancelApproval(interaction) {
     // Not Signed Up - 512838063152562194
     // Remove the not signed up role and give them the raider role
     logger.info('Attaching appropriate roles...');
-    user.roles.add(newMemberData.roles['not-signed-up']);
-    user.roles.remove(newMemberData.roles['raider']);
+    await user.roles.add(newMemberData.roles['not-signed-up']);
+    await user.roles.remove(newMemberData.roles['raider']);
 
     logger.info('Finished');
     logger.info('Sending updates to sheet');
