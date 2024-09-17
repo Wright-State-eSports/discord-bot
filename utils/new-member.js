@@ -94,7 +94,7 @@ export async function initiateApprovalEmbed(message) {
                     );
             else
                 embed
-                    .setColor('Gray')
+                    .setColor('Grey')
                     .setTitle('New Guest')
                     .setThumbnail(user.displayAvatarURL())
                     .addFields(
