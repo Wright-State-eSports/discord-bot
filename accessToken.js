@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import raider from './rowdyraider.json' assert { type: 'json' };
+import raider from './rowdyraider.json' with { type: 'json' };
 import logger from './utils/loggers/logger.js';
 
 export const accessToken = {
@@ -8,7 +8,7 @@ export const accessToken = {
         logger.info('Refreshing auth token...');
 
         const auth = new google.auth.JWT(
-            'rowdy-raider@rowdyraider.iam.gserviceaccount.com',
+            raider.client_email,
             null,
             raider.private_key,
             [
