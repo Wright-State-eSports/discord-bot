@@ -4,7 +4,7 @@
  */
 import pino from 'pino';
 import createTransport, { getFormattedDate } from './transport.js';
-// import channelList from '../../data/channel-list.json' assert { type: 'json' };
+// import channelList from '../../data/channel-list.json' with { type: 'json' };
 import { Client } from 'discord.js';
 
 const _info = pino(

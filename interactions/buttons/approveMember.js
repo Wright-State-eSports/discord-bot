@@ -1,7 +1,7 @@
 import { ButtonBuilder, ButtonStyle, ActionRowBuilder, RoleManager } from 'discord.js';
 
 import logger from '../../utils/loggers/logger.js';
-import newMemberData from '../../data/new-member.json' assert { type: 'json' };
+import newMemberData from '../../data/new-member.json' with { type: 'json' };
 import accessToken from '../../accessToken.js';
 
 async function approveMember(interaction) {
@@ -13,6 +13,7 @@ async function approveMember(interaction) {
     let userId = data.fields[1].value.substring(2).replace('>', '');
 
     let user = await interaction.guild.members.fetch(userId);
+    const helpChannelId = '626872024375230492'
 
     // Raider - 487305397204418560
     // Not Signed Up - 512838063152562194
@@ -41,7 +42,13 @@ async function approveMember(interaction) {
         }
     );
 
-    if (res.status == 200) logger.info('Success!');
+    if (res.status == 200) {
+	
+	interaction.client.channels.cache.get(helpChannelId).send(`<@${userId}>, you are set!`);	
+
+	logger.info('Success!');
+		
+    }
     else {
         logger.info('Something went wrong: Status code: ' + res.status);
         logger.section.START();

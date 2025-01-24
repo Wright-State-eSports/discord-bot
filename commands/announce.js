@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChannelType, PermissionFlagsBits } from 'discord.js';
-import channelList from '../data/channel-list.json' assert { type: 'json' };
+import channelList from '../data/channel-list.json' with { type: 'json' };
 
 /**
  * @type {import('../typedefs.js').Command}

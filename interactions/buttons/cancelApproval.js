@@ -1,7 +1,7 @@
 import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 
 import logger from '../../utils/loggers/logger.js';
-import newMemberData from '../../data/new-member.json' assert { type: 'json' };
+import newMemberData from '../../data/new-member.json' with { type: 'json' };
 import accessToken from '../../accessToken.js';
 
 /**
