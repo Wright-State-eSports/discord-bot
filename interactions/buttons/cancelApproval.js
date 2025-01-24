@@ -17,6 +17,8 @@ async function cancelApproval(interaction) {
     let data = interaction.message.embeds[0];
     let userId = data.fields[1].value.substring(2).replace('>', '');
 
+    await interaction.deferUpdate();
+
     let user = await interaction.guild.members.fetch(userId);
 
     // Raider - 487305397204418560
@@ -28,6 +30,12 @@ async function cancelApproval(interaction) {
 
     logger.info('Finished');
     logger.info('Sending updates to sheet');
+
+    logger.info('Checking token...');
+    if (!(await accessToken.fresh()))  {
+        logger.info('Token not fresh... Refreshing');
+        await accessToken.initToken();
+    }
 
     let res = await fetch(
         'https://script.google.com/macros/s/AKfycbxDT-veY2NcRZD_yg_lZUQTfR_uzHIG8tRBjZAONTV7/dev',
@@ -64,7 +72,7 @@ async function cancelApproval(interaction) {
 
     const row = new ActionRowBuilder().addComponents(approve, engage);
 
-    interaction.update({
+    interaction.editReply({
         components: [row]
     });
 

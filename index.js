@@ -44,10 +44,10 @@ const client = new Client({
 await token.initToken();
 
 // Every 14 minutes, the token will be refreshed
-logger.info('Setting up token refresher...');
-setInterval(async () => {
-    await token.initToken();
-}, 1000 * 60 * 10);
+// logger.info('Setting up token refresher...');
+// setInterval(async () => {
+//     await token.initToken();
+// }, 1000 * 60 * 10);
 
 // loads all the commands to discord's rest api
 logger.info('Loading commands into client...');

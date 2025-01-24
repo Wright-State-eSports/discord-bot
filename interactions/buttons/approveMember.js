@@ -12,6 +12,8 @@ async function approveMember(interaction) {
     let data = interaction.message.embeds[0];
     let userId = data.fields[1].value.substring(2).replace('>', '');
 
+    await interaction.deferUpdate();
+
     let user = await interaction.guild.members.fetch(userId);
     const helpChannelId = '626872024375230492'
 
@@ -25,6 +27,12 @@ async function approveMember(interaction) {
 
     logger.info('Finished');
     logger.info('Sending updates to sheet');
+
+    logger.info('Checking token...');
+    if (!(await accessToken.fresh()))  {
+        logger.info('Token not fresh... Refreshing');
+        await accessToken.initToken();
+    }
 
     let res = await fetch(
         'https://script.google.com/macros/s/AKfycbxDT-veY2NcRZD_yg_lZUQTfR_uzHIG8tRBjZAONTV7/dev',
@@ -43,13 +51,10 @@ async function approveMember(interaction) {
     );
 
     if (res.status == 200) {
-	
-	interaction.client.channels.cache.get(helpChannelId).send(`<@${userId}>, you are set!`);	
-
-	logger.info('Success!');
-		
-    }
-    else {
+        interaction.client.channels.cache
+            .get(helpChannelId).send(`<@${userId}>, you are set!`);	
+        logger.info('Success!');
+    } else {
         logger.info('Something went wrong: Status code: ' + res.status);
         logger.section.START();
         logger.info('Dumping response');
@@ -61,7 +66,6 @@ async function approveMember(interaction) {
     logger.info('Updating buttons');
 
     const engage = interaction.message.components[0].components[1];
-    // console.log(engage);
 
     const disapprove = new ButtonBuilder()
         .setCustomId('cancelApproval')
@@ -70,14 +74,9 @@ async function approveMember(interaction) {
 
     const row = new ActionRowBuilder().addComponents(disapprove, engage);
 
-    interaction.update({
+    interaction.editReply({
         components: [row]
     });
-
-    // TODO: Change
-    // interaction.reply({
-    //     content: 'Done!'
-    // });
 
     logger.info('Done!');
     logger.section.END();
