@@ -11,7 +11,7 @@ import {
 import Fuse from 'fuse.js';
 
 import logger from '../utils/loggers/logger.js';
-import newMemberData from '../data/new-member.json' assert { type: 'json' };
+import newMemberData from '../data/new-member.json' with { type: 'json' };
 
 /**
  * Applies restrictions from not being signed up
@@ -98,7 +98,7 @@ export async function initiateApprovalEmbed(message) {
                     .setTitle('New Guest')
                     .setThumbnail(user.displayAvatarURL())
                     .addFields(
-                        { name: 'Name', value: data },
+                        { name: 'Name', value: data.name },
                         { name: 'Discord @', value: `<@${user.id}>` },
                         { name: 'Discord Username', value: data.username },
                         { name: 'Email', value: data.email },
