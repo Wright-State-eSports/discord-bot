@@ -31,6 +31,8 @@ export async function initiateApprovalEmbed(message) {
     if (message.channelId !== '1280328507905282068' || message.webhookId !== '1280328619704451114')
         return;
 
+    if (message.guildId !== '484520129267499042') return;
+
     logger.section.START();
     logger.info('Webhook data received... Parsing data');
 
