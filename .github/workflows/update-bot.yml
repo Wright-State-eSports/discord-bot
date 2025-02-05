@@ -3,8 +3,7 @@ run-name: Updating bot
 
 on:
     push:
-        paths:
-            - '*'
+        branches: main
 
 jobs:
     send-webhook-to-server:
