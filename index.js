@@ -16,7 +16,7 @@ import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
 import logger from './utils/loggers/logger.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
-import { approveMember, cancelApproval } from './interactions/buttons/index.js';
+import { approveMember, approveGuest, cancelApproval } from './interactions/buttons/index.js';
 import loadCommands from './utils/loadCommands.js';
 import token from './accessToken.js';
 
@@ -42,12 +42,6 @@ const client = new Client({
 });
 
 await token.initToken();
-
-// Every 14 minutes, the token will be refreshed
-// logger.info('Setting up token refresher...');
-// setInterval(async () => {
-//     await token.initToken();
-// }, 1000 * 60 * 10);
 
 // loads all the commands to discord's rest api
 logger.info('Loading commands into client...');
@@ -86,6 +80,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             case 'approveMember':
                 approveMember(interaction);
                 break;
+            case 'approveGuest':
+                approveGuest(interaction);
+                break;
             case 'cancelApproval':
                 cancelApproval(interaction);
                 break;
@@ -123,3 +120,6 @@ client.on(Events.GuildMemberUpdate, async (_old, newMember) => {});
 
 logger.info('Logging in...');
 client.login(TOKEN);
+
+// logger.info('Attaching client to logger...');
+// logger._client = client;

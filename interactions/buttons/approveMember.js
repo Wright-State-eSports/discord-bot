@@ -1,5 +1,4 @@
-import { ButtonBuilder, ButtonStyle, ActionRowBuilder, RoleManager } from 'discord.js';
-
+import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import logger from '../../utils/loggers/logger.js';
 import newMemberData from '../../data/new-member.json' with { type: 'json' };
 import accessToken from '../../accessToken.js';
@@ -24,6 +23,7 @@ async function approveMember(interaction) {
 
     await user.roles.add(newMemberData.roles['raider']);
     await user.roles.remove(newMemberData.roles['not-signed-up']);
+    await user.roles.remove(newMemberData.roles['guest']);
 
     logger.info('Finished');
     logger.info('Sending updates to sheet');

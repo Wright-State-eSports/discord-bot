@@ -20,55 +20,73 @@ async function cancelApproval(interaction) {
     await interaction.deferUpdate();
 
     let user = await interaction.guild.members.fetch(userId);
+    let embedTitle = interaction.message.embeds[0].title
 
-    // Raider - 487305397204418560
-    // Not Signed Up - 512838063152562194
-    // Remove the not signed up role and give them the raider role
+    logger.info('Checking if guest or member...')
+
+    /**
+     * Check if the user is a guest or a member
+     * @type {boolean}
+     */
+    let guest = embedTitle == 'New Guest';
+
+    logger.info('User detected as a ' + (guest ? 'guest' : 'member'));
+
     logger.info('Attaching appropriate roles...');
-    await user.roles.add(newMemberData.roles['not-signed-up']);
-    await user.roles.remove(newMemberData.roles['raider']);
 
-    logger.info('Finished');
-    logger.info('Sending updates to sheet');
+    if (guest) {
+        // If they are a guest, we don't need to send any update to the sheet
+        await user.roles.remove(newMemberData.roles['guest']);
+        await user.roles.add(newMemberData.roles['not-signed-up']);
+        logger.info('Finished');
 
-    logger.info('Checking token...');
-    if (!(await accessToken.fresh()))  {
-        logger.info('Token not fresh... Refreshing');
-        await accessToken.initToken();
-    }
+    } else {
+        // But if they are a member, we need to send an update to the sheet 
+        await user.roles.remove(newMemberData.roles['raider']);
+        await user.roles.add(newMemberData.roles['not-signed-up']);
 
-    let res = await fetch(
-        'https://script.google.com/macros/s/AKfycbxDT-veY2NcRZD_yg_lZUQTfR_uzHIG8tRBjZAONTV7/dev',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken.token}`
-            },
-            body: JSON.stringify({
-                mode: 'disapprove',
-                username: data.fields[0].value,
-                rowNum: data.fields[4].value
-            })
+        logger.info('Finished');
+        logger.info('Sending updates to sheet');
+
+        logger.info('Checking token...');
+        if (!(await accessToken.fresh()))  {
+            logger.info('Token not fresh... Refreshing');
+            await accessToken.initToken();
         }
-    );
 
-    if (res.status == 200) logger.info('Success!');
-    else {
-        logger.info('Something went wrong: Status code: ' + res.status);
-        logger.section.START();
-        logger.info('Dumping response');
-        logger.info(res);
-        logger.section.END();
+        let res = await fetch(
+            'https://script.google.com/macros/s/AKfycbxDT-veY2NcRZD_yg_lZUQTfR_uzHIG8tRBjZAONTV7/dev',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken.token}`
+                },
+                body: JSON.stringify({
+                    mode: 'disapprove',
+                    username: data.fields[0].value,
+                    rowNum: data.fields[4].value
+                })
+            }
+        );
+
+        if (res.status == 200) logger.info('Success!');
+        else {
+            logger.info('Something went wrong: Status code: ' + res.status);
+            logger.section.START();
+            logger.info('Dumping response');
+            logger.info(res);
+            logger.section.END();
+        }
     }
 
     logger.info('Updating buttons');
 
     const engage = interaction.message.components[0].components[1];
     const approve = new ButtonBuilder()
-        .setCustomId('approveMember')
-        .setLabel('Approve Member')
-        .setStyle(ButtonStyle.Success);
+        .setCustomId(guest ? 'approveGuest':  'approveMember')
+        .setLabel(guest ? 'Approve Guest' : 'Approve Member')
+        .setStyle(guest ? ButtonStyle.Success : ButtonStyle.Secondary);
 
     const row = new ActionRowBuilder().addComponents(approve, engage);
 
