@@ -1,11 +1,14 @@
 import info from './info.js';
 import error from './error.js';
 
-let _client;
-
 const logger = {
-    info,
-    error: (errObj, msg) => error(errObj, msg, _client),
+    _client: null,
+    info: function (msg) {
+        info(msg, this._client);
+    },
+    error: function (errObj, msg) {
+        error(errObj, msg, this._client);
+    },
     section: {
         START: () => info('====== SECTION START ======'),
         END: () => info('====== SECTION END ======')
