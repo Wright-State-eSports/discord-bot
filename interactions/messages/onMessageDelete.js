@@ -1,5 +1,5 @@
-import { Message, EmbedBuilder, AuditLogEvent } from 'discord.js';
-import channelList from '../../data/channel-list.json' assert { type: 'json' };
+import { Message, EmbedBuilder} from 'discord.js';
+import channelList from '../../data/channel-list.json' with { type: 'json' };
 
 /**
  * Logs messages being deleted
