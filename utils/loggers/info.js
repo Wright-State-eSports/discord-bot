@@ -23,39 +23,40 @@ const _info = pino(
 async function info(message, client = null, options) {
     _info.info(message);
 
-    if (client) {
-        try {
-            const defaultChannels = channelList.logs.default;
-            const infoChannels = channelList.logs.info;
+    // TODO: Actually implement this and test it | for now it's commented out
+    // if (client) {
+    //     try {
+    //         const defaultChannels = channelList.logs.default;
+    //         const infoChannels = channelList.logs.info;
 
-            // These are the actual channels being used, convert to set
-            // to prevent any repeats in the channels
-            let channels = new Set(infoChannels?.length ? infoChannels : defaultChannels);
+    //         // These are the actual channels being used, convert to set
+    //         // to prevent any repeats in the channels
+    //         let channels = new Set(infoChannels?.length ? infoChannels : defaultChannels);
 
-            channels = client.channels.cache.filter((ch) => channels.has(ch.id))
+    //         channels = client.channels.cache.filter((ch) => channels.has(ch.id))
 
-            const embed = new EmbedBuilder()
-                .setTitle("Information Log")
-                .setDescription(message)
-                .setColor("#00b0f4");
+    //         const embed = new EmbedBuilder()
+    //             .setTitle("Information Log")
+    //             .setDescription(message)
+    //             .setColor("#00b0f4");
 
-            channels.forEach((channel) => {
-                channel.send()
-            })        
+    //         channels.forEach((channel) => {
+    //             channel.send()
+    //         })        
 
-        } catch (err) {
+    //     } catch (err) {
 
-        }
+    //     }
 
 
         
-    //     const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
-    //     const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
+    // //     const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
+    // //     const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
 
-    //     channels.each((channel) => {
-    //         channel.send(`INFO: ${message}`);
-    //     });
-    }
+    // //     channels.each((channel) => {
+    // //         channel.send(`INFO: ${message}`);
+    // //     });
+    // }
 }
 
 export default info;
