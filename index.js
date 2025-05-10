@@ -1,5 +1,11 @@
 /**
- * Wright State University Esports Discord Bot
+ * Wright State University eSports
+ * Discord Bot
+ *
+ * ===========================
+ * Contributors:
+ * @author Joshua Quaintance
+ * ===========================
  *
  * A general purpose discord bot created to
  * simplify tedious jobs around the discord server
@@ -7,16 +13,46 @@
  * - Member Sign-up
  * - Auto-role
  * - Announcements
+ * - Message edit/delete logging
+ * - * In-Discord logging
+ *
+ * __Anything with (*) is not implemented yet__
  *
  * The bot uses the discord.js module to interact with
  * the discord API
+ *
+ * ===========================
+ *
+ * Guidlines:
+ * - All events from discord should be handled in this file
+ * - All functions should be in their own module
+ * - All functions should be imported into the main index.js file
+ * - All functions should be documented with JSDoc
+ *
+ * This `index.js` file is the main entry point for the bot
+ * and handles all the events and interactions, but it does not
+ * have the actual functions themselves as they will be imported
+ * as  modules.
+ *
+ * If any events are added, it should be added here
+ * as a centralized location and any functions that will handle
+ * the events should be imported from their respective modules.
  */
-import 'dotenv/config';
+import 'dotenv/config'; // env variables
 import { Events, GatewayIntentBits, Client, Partials } from 'discord.js';
 
-import logger from './utils/loggers/logger.js';
+// Interactions modules
+import {
+    approveMember,
+    approveGuest,
+    cancelApproval,
+    onMessageEdit,
+    onMessageDelete
+} from './interactions/index.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
-import { approveMember, approveGuest, cancelApproval } from './interactions/buttons/index.js';
+
+// Utilities
+import logger from './utils/loggers/logger.js';
 import loadCommands from './utils/loadCommands.js';
 import token from './accessToken.js';
 
@@ -29,6 +65,14 @@ logger.info('Booting up...');
 
 logger.info('Creating client...');
 const TOKEN = process.env._TOKEN_SECRET;
+
+/**
+ * The client is the main entry point for the bot
+ *
+ * Since the big update discord did to the API, we need to tell the
+ * API what we want to have access to and essentially what the bot
+ * will be doing. This is done through the intents and partials
+ */
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -36,7 +80,8 @@ const client = new Client({
         GatewayIntentBits.GuildWebhooks,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildPresences
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildModeration
     ],
     partials: [Partials.Channel, Partials.Message]
 });
@@ -57,6 +102,18 @@ client.once(Events.ClientReady, async (ready) => {
  * and if it's a webhook
  */
 client.on(Events.MessageCreate, initiateApprovalEmbed);
+
+/**
+ * When a message is edited, if it's not a webhook or a bot, we will log the original message
+ * and the updated message
+ *
+ * | We won't use asnyc and let it be out of sync because it doesn't matter
+ * | since we already have the messages as a param, and new triggers won't
+ * | or atleast shouldn't override the first run of the function
+ */
+client.on(Events.MessageUpdate, onMessageEdit);
+
+client.on(Events.MessageDelete, onMessageDelete);
 
 /**
  * When any interaction is detected
