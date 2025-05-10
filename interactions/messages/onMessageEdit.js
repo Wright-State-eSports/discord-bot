@@ -1,4 +1,4 @@
-import { Message, EmbedBuilder } from 'discord.js';
+import { Message, EmbedBuilder, MessageFlags } from 'discord.js';
 import channelList from '../../data/channel-list.json' with { type: 'json' };
 
 /**
@@ -61,7 +61,7 @@ Channel: <#${oldMessage.channel.id}>`;
     );
 
     channels.forEach((channel) => {
-        channel.send({ embeds: [embed] });
+        channel.send({ embeds: [embed], flags: [MessageFlags.SuppressNotifications] });
     });
 }
 
