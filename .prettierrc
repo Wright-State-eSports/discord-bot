@@ -8,5 +8,13 @@
     "quoteProps": "consistent",
     "bracketSameLine": true,
     "bracketSpacing": true,
-    "arrowParens": "always"
+    "arrowParens": "always",
+    "overrides": [
+        {
+            "files": "*.js",
+            "options": {
+                "parser": "babel"
+            }
+        }
+    ]
 }
