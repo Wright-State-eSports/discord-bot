@@ -3,9 +3,10 @@
  * for any and all information (logging everything is important)
  */
 import pino from 'pino';
+import { ChannelType, Client, EmbedBuilder, MessageFlags } from 'discord.js';
+
 import createTransport, { getFormattedDate } from './transport.js';
 import channelList from '../../data/channel-list.json' with { type: 'json' };
-import { Client, EmbedBuilder } from 'discord.js';
 
 const _info = pino(
     {
@@ -20,43 +21,35 @@ const _info = pino(
  * @param { string } message Message to log
  * @param { Client? } client Client, if provided, it will send a copy of the logs to the set channels
  */
-async function info(message, client = null, options) {
+async function info(message, client, options) {
     _info.info(message);
 
-    // TODO: Actually implement this and test it | for now it's commented out
-    // if (client) {
-    //     try {
-    //         const defaultChannels = channelList.logs.default;
-    //         const infoChannels = channelList.logs.info;
+    if (client) {
+        try {
+            const defaultChannels = channelList.logs.default;
+            const infoChannels = channelList.logs.info;
 
-    //         // These are the actual channels being used, convert to set
-    //         // to prevent any repeats in the channels
-    //         let channels = new Set(infoChannels?.length ? infoChannels : defaultChannels);
+            // These are the actual channels being used, convert to set
+            // to prevent any repeats in the channels
+            let channels = new Set(infoChannels?.length ? infoChannels : defaultChannels);
 
-    //         channels = client.channels.cache.filter((ch) => channels.has(ch.id))
+            channels = client.channels.cache.filter((ch) => {
+                // Check if the channel exists and it's a text channel
+                return channels.has(ch.id) && ch.type === ChannelType.GuildText;
+            });
 
-    //         const embed = new EmbedBuilder()
-    //             .setTitle("Information Log")
-    //             .setDescription(message)
-    //             .setColor("#00b0f4");
+            const embed = new EmbedBuilder()
+                .setTitle('Information Log')
+                .setColor('#00b0f4')
+                .setDescription(message);
 
-    //         channels.forEach((channel) => {
-    //             channel.send()
-    //         })        
-
-    //     } catch (err) {
-
-    //     }
-
-
-        
-    // //     const infoChannels = channelList['logs']['info'] ?? channelList['logs']['default'];
-    // //     const channels = client.channels.cache.filter((ch) => infoChannels.includes(ch.id));
-
-    // //     channels.each((channel) => {
-    // //         channel.send(`INFO: ${message}`);
-    // //     });
-    // }
+            channels.forEach((channel) => {
+                channel.send({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            });
+        } catch (err) {
+            console.error(err, 'Error sending info log to channels');
+        }
+    }
 }
 
 export default info;

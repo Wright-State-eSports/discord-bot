@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 
 /**
  * @type {import('../typedefs').Command}
@@ -36,6 +36,6 @@ export default {
         const oldMessage = await channel.messages.fetch(messageID);
         oldMessage.edit(newMessage);
 
-        await interaction.reply({ content: 'Message edited', ephemeral: true });
+        await interaction.reply({ content: 'Message edited', flags: MessageFlags.Ephemeral });
     }
 };

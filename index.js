@@ -14,7 +14,9 @@
  * - Auto-role
  * - Announcements
  * - Message edit/delete logging
- * - * In-Discord logging
+ * - In-Discord logging
+ * - *Sheets webhook integration
+ * - *Fun commands for users
  *
  * __Anything with (*) is not implemented yet__
  *
@@ -23,7 +25,7 @@
  *
  * ===========================
  *
- * Guidlines:
+ * Guidelines:
  * - All events from discord should be handled in this file
  * - All functions should be in their own module
  * - All functions should be imported into the main index.js file
@@ -65,6 +67,7 @@ logger.info('Booting up...');
 
 logger.info('Creating client...');
 const TOKEN = process.env._TOKEN_SECRET;
+const startTime = new Date();
 
 /**
  * The client is the main entry point for the bot
@@ -94,7 +97,9 @@ await loadCommands(client);
 
 logger.info('Attaching event listeners...');
 client.once(Events.ClientReady, async (ready) => {
-    logger.info(`Successfully logged in as ${ready.user.tag}`);
+    logger.info(
+        `Successfully logged in as ${ready.user.tag}. \n\nStarted up in ${Date.now() - startTime}ms`
+    );
 });
 
 /**
@@ -104,33 +109,46 @@ client.once(Events.ClientReady, async (ready) => {
 client.on(Events.MessageCreate, initiateApprovalEmbed);
 
 /**
+ * ! When a message is sent before the bot is turned on, the bot doesn't have prior knowledge
+ * ! of the message and therefore will have missing data
  * When a message is edited, if it's not a webhook or a bot, we will log the original message
  * and the updated message
- *
- * | We won't use asnyc and let it be out of sync because it doesn't matter
- * | since we already have the messages as a param, and new triggers won't
- * | or atleast shouldn't override the first run of the function
  */
 client.on(Events.MessageUpdate, onMessageEdit);
 
+/**
+ * When a message is deleted, if it's not a webhook or a bot, we will log the message
+ * and the channel it was deleted in
+ */
 client.on(Events.MessageDelete, onMessageDelete);
 
 /**
  * When any interaction is detected
+ * @param {Interaction} interaction - The interaction that was created
  */
 client.on(Events.InteractionCreate, async (interaction) => {
+    // If the interactions is created by a bot role, which the role id is: 562454890568482818, ignore it
     if (!interaction.member.roles.cache.has('546394309688164364')) return;
 
     if (interaction.isChatInputCommand()) {
         const name = interaction.commandName;
         const command = interaction.client.commands.get(name);
 
-        if (!command) await interaction.reply(`No command named ${name}`);
+        if (!command) {
+            await interaction.reply(`No command named \`${name}\``);
+            logger.info(
+                `<@${interaction.user.id}> tried to use \`${name}\` command, but it doesn't exist`
+            );
+        }
 
         try {
             await command.execute(interaction);
+            logger.info(
+                `<@${interaction.user.id}> (${interaction.user.username}) used \`${name}\` command` +
+                    `in <#${interaction.channel.id}> (${interaction.channel.name})`
+            );
         } catch (err) {
-            logger.error(err, 'Unexpected error on member join!');
+            logger.error(err, 'Error executing command');
         }
     } else if (interaction.isButton()) {
         switch (interaction.component.customId) {
@@ -178,5 +196,5 @@ client.on(Events.GuildMemberUpdate, async (_old, newMember) => {});
 logger.info('Logging in...');
 client.login(TOKEN);
 
-// logger.info('Attaching client to logger...');
-// logger._client = client;
+logger.info('Attaching client to logger...');
+logger._client = client;

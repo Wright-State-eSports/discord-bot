@@ -2,7 +2,7 @@ import info from './info.js';
 import error from './error.js';
 
 const logger = {
-    _client: null,
+    _client: undefined,
     info: function (msg) {
         info(msg, this._client);
     },

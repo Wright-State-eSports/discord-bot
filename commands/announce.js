@@ -1,5 +1,4 @@
-import { SlashCommandBuilder, ChannelType, PermissionFlagsBits } from 'discord.js';
-import channelList from '../data/channel-list.json' with { type: 'json' };
+import { SlashCommandBuilder, ChannelType, PermissionFlagsBits, MessageFlags } from 'discord.js';
 
 /**
  * @type {import('../typedefs.js').Command}
@@ -36,19 +35,18 @@ export default {
         if (!message && !attachment) {
             interaction.reply({
                 content: 'Message or attachment is not provided',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
 
-         if (!channel) {
-             interaction.reply({
-                 content:
-		     'Please provide a channel',
-                 ephemeral: true
-             });
-             return;
-         }
+        if (!channel) {
+            interaction.reply({
+                content: 'Please provide a channel',
+                flags: MessageFlags.Ephemeral
+            });
+            return;
+        }
 
         const payload = {
             content: message
@@ -57,6 +55,6 @@ export default {
         if (attachment) payload.files = [attachment];
 
         channel.send(payload);
-        interaction.reply({ content: 'Message Sent!', ephemeral: true });
+        interaction.reply({ content: 'Message Sent!', flags: MessageFlags.Ephemeral });
     }
 };
