@@ -47,4 +47,7 @@ SOFTWARE.
 
 This Discord bot was initially created and maintained by our officer [Joshua Quaintance](https://github.com/JoshQuaintance)
 
-If you would like to contribute to this repository, please follow read the contritbution guidelines [Contribution Guidelines](CONTRIBUTING.MD)
+If you would like to contribute to this repository, please follow read the contritbution guidelines linked below.
+
+> [!IMPORTANT]
+> [**Contribution Guidelines**](CONTRIBUTING.MD)
