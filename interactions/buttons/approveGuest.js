@@ -13,7 +13,7 @@ async function approveGuest(interaction) {
     await interaction.deferUpdate();
 
     let user = await interaction.guild.members.fetch(userId);
-    const helpChannelId = '626872024375230492'
+    const helpChannelId = '626872024375230492';
 
 
     logger.info('Attaching appropriate roles...');
@@ -45,4 +45,4 @@ async function approveGuest(interaction) {
     logger.section.END();
 }
 
-export default approveGuest
+export default approveGuest;

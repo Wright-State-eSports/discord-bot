@@ -6,15 +6,15 @@ export const accessToken = {
     token: undefined,
     lastRefresh: Date.now(),
     /**
-     *  Checks if the last time the token was refreshed was 
+     *  Checks if the last time the token was refreshed was
      *  at least 10 minutes ago. It also forces a promise so that
      *  the token refresh has to wait to make sure that this function
      *  finishes first instead of synchronously doing both (which may break)
      * @returns boolean
      */
-    async fresh() { 
-        const retVal = (Date.now() - this.lastRefresh) / 1000 / 60 < 10
-        return new Promise((resolve) => resolve(retVal))
+    async fresh() {
+        const retVal = (Date.now() - this.lastRefresh) / 1000 / 60 < 10;
+        return new Promise((resolve) => resolve(retVal));
     },
     async initToken() {
         logger.info('Refreshing auth token...');
@@ -33,7 +33,7 @@ export const accessToken = {
 
         this.lastRefresh = Date.now();
         this.token = (await auth.getAccessToken()).token;
-    },
+    }
 };
 
 export default accessToken;

@@ -2,7 +2,7 @@
  * Logs all the catched errors
  */
 import pino from 'pino';
-import { EmbedBuilder, Client, ChannelType } from 'discord.js';
+import { EmbedBuilder, ChannelType } from 'discord.js';
 
 import createTransport, { getFormattedDate } from './transport.js';
 import channelList from '../../data/channel-list.json' with { type: 'json' };
@@ -21,7 +21,7 @@ const _error = pino(
  * Errors will always be informed to a discord channel
  * @param {Error} errorObject The error object that contains data about the error
  * @param {string} message Message to log
- * @param {Client} client Client object to be able to send error message to the discord channel
+ * @param {import('discord.js').Client?} client Client object to be able to send error message to the discord channel
  */
 async function error(errorObject, message, client) {
     _error.error(errorObject, message);

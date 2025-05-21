@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, Interaction } from 'discord.js';
+/**
+ * @typedef { import('discord.js').Interaction } Interaction
+ * @typedef { import('discord.js').SlashCommandBuilder } SlashCommandBuilder
+ * @typedef { import('discord.js').Client } Client
+ */
 
 /**
  * @typedef { object } Command

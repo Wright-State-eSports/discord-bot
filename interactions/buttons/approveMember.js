@@ -14,7 +14,7 @@ async function approveMember(interaction) {
     await interaction.deferUpdate();
 
     let user = await interaction.guild.members.fetch(userId);
-    const helpChannelId = '626872024375230492'
+    const helpChannelId = '626872024375230492';
 
     // Raider - 487305397204418560
     // Not Signed Up - 512838063152562194

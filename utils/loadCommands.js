@@ -1,12 +1,12 @@
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
-import { Collection, Client } from 'discord.js';
+import { Collection } from 'discord.js';
 import logger from './loggers/logger.js';
 
 /**
  * Loads all the commands putting it into the client
  *
- * @param { Client } client
+ * @param { import('discord.js').Client } client
  * @returns { Promise< import('../typedefs.js').Command[] > }
  */
 const loadCommands = async (client) => {

@@ -1,10 +1,10 @@
-import { Message, EmbedBuilder, MessageFlags } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import channelList from '../../data/channel-list.json' with { type: 'json' };
 
 /**
  * Handles the message edit event
- * @param {Message} oldMessage The old message before the edit
- * @param {Message} newMessage The new message after the edit
+ * @param { import('disocrd.js').Message } oldMessage The old message before the edit
+ * @param { import('discord.js').Message } newMessage The new message after the edit
  */
 async function onMessageEdit(oldMessage, newMessage) {
     // Since messages before the bot is alive aren't cached, the api

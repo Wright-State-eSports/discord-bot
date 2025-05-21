@@ -3,7 +3,7 @@
  * for any and all information (logging everything is important)
  */
 import pino from 'pino';
-import { ChannelType, Client, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
 
 import createTransport, { getFormattedDate } from './transport.js';
 import channelList from '../../data/channel-list.json' with { type: 'json' };
@@ -19,9 +19,9 @@ const _info = pino(
 /**
  * Info level logging for regular logging
  * @param { string } message Message to log
- * @param { Client? } client Client, if provided, it will send a copy of the logs to the set channels
+ * @param { import('discord.js').Client? } client Client, if provided, it will send a copy of the logs to the set channels
  */
-async function info(message, client, options) {
+async function info(message, client, _options) {
     _info.info(message);
 
     if (client) {

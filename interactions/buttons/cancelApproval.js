@@ -20,9 +20,9 @@ async function cancelApproval(interaction) {
     await interaction.deferUpdate();
 
     let user = await interaction.guild.members.fetch(userId);
-    let embedTitle = interaction.message.embeds[0].title
+    let embedTitle = interaction.message.embeds[0].title;
 
-    logger.info('Checking if guest or member...')
+    logger.info('Checking if guest or member...');
 
     /**
      * Check if the user is a guest or a member

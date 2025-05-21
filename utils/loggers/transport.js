@@ -1,6 +1,6 @@
 import pino from 'pino';
 
-export function getFormattedDate(timestamp) {
+export function getFormattedDate() {
     const date = new Date();
     const month = date.toLocaleString('default', { month: 'short' });
     const time = date.toLocaleString('default', {

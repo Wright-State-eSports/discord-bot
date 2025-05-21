@@ -185,13 +185,13 @@ client.on(Events.GuildMemberAdd, async (member) => {
 /**
  * When someone leaves the server (voluntarily or non-voluntarily)
  */
-client.on(Events.GuildMemberRemove, async (member) => {});
+client.on(Events.GuildMemberRemove, async () => {});
 
 /**
  * When a member of the server has something updated about them
  * nickname, roles, etc...
  */
-client.on(Events.GuildMemberUpdate, async (_old, newMember) => {});
+client.on(Events.GuildMemberUpdate, async (_old) => {});
 
 logger.info('Logging in...');
 client.login(TOKEN);

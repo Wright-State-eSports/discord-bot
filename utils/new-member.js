@@ -1,12 +1,4 @@
-import {
-    GuildMember,
-    EmbedBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    ActionRowBuilder,
-    Message,
-    User
-} from 'discord.js';
+import { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 
 import Fuse from 'fuse.js';
 

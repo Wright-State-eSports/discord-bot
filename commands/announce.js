@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChannelType, PermissionFlagsBits, MessageFlags } from 'discord.js';
 
 /**
- * @type {import('../typedefs.js').Command}
+ * @type { import('../typedefs.js').Command }
  */
 export default {
     admin: true,
