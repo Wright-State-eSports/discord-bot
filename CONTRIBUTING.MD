@@ -57,14 +57,14 @@ The dependencies that are used for this repository is listed inside of [package.
 
 ```sh
 # ssh
-git clone git@github.com:Wright-State-eSports/esports-bot
+git clone git@github.com:Wright-State-eSports/discord-bot
 ```
 
 or
 
 ```sh
 # https
-git clone https://github.com/Wright-State-eSports/esports
+git clone https://github.com/Wright-State-eSports/discord-bot
 ```
 
 --
@@ -119,7 +119,7 @@ git checkout new-branch-name
 #### 7. Create a pull request in GitHub
 
 > [!NOTE]  
-> https://github.com/Wright-State-eSports/esports-bot/pulls
+> https://github.com/Wright-State-eSports/discord-bot/pulls
 
 --
 
