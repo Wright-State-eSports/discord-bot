@@ -33,15 +33,16 @@ Prettier is also utilized for formatting. The settings can be read inside of [.p
 
 #### Pre-requisites
 
-There are a few required pre-requisites to have to develop the bot:
-
-- Node.js | https://nodejs.org/en
-- bun | https://bun.sh or npm (packaged with Node.js)
-- Docker | https://docs.docker.com/
+> [!IMPORTANT]
+> There are a few required pre-requisites to have to develop the bot:
+>
+> - Node.js | https://nodejs.org/en
+> - bun | https://bun.sh or npm (packaged with Node.js)
+> - Docker | https://docs.docker.com/
 
 Bun is preferred since it has better performance but npm works just fine because it was built using npm, but bun is npm compatible
 
-Docker is used to containerize the bot in AWS that also helps with automation in the server side. 
+Docker is used to containerize the bot in AWS that also helps with automation in the server side.
 
 --
 
@@ -130,5 +131,5 @@ The AWS Server also contains a websocket server that is set up to receive update
 
 ---
 
-> [!WARN]  
+> [!WARNING]  
 > TODO: Put the redeploy script and webhook setup

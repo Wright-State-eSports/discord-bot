@@ -13,7 +13,7 @@ It looks like you've stumbled upon the source code for the bot for Wright State 
 
 --
 
-> [!TIP]  
+> [!IMPORTANT]  
 > Join the discord server!  
 > http://discord.gg/PG9p6DNXsy
 
