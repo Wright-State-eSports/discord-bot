@@ -1,0 +1,5 @@
+Bootstrap: docker
+From: node:latest
+Stage: build
+
+
