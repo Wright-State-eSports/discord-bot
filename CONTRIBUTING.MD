@@ -38,11 +38,13 @@ Prettier is also utilized for formatting. The settings can be read inside of [.p
 >
 > - Node.js | https://nodejs.org/en
 > - bun | https://bun.sh or npm (packaged with Node.js)
-> - Docker | https://docs.docker.com/
+> - Singularity | https://github.com/sylabs/singularity (Container)
 
 Bun is preferred since it has better performance but npm works just fine because it was built using npm, but bun is npm compatible
 
-Docker is used to containerize the bot in AWS that also helps with automation in the server side.
+~Docker is used to containerize the bot in AWS that also helps with automation in the server side.~
+
+Singularity is used to containerize node and bun to run the bot in AWS that helps with automation server side
 
 --
 
