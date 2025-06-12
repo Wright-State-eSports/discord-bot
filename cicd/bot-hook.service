@@ -1,0 +1,14 @@
+[Unit]
+Description=Webhook to restart website container service
+After=webhook.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=ubuntu
+ExecStart=/usr/bin/webhook -hooks /home/ubuntu/hooks.json
+
+[Install]
+WantedBy=multi-user.target

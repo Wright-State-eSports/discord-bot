@@ -1,0 +1,10 @@
+Bootstrap: docker
+From: node:latest
+Stage: build
+
+%post
+        npm install -g bun
+
+%startscript
+	bun install
+	bun index.js

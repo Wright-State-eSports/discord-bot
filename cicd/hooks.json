@@ -1,0 +1,19 @@
+[
+	{
+		"id": "redeploy-hook",
+		"execute-command": "/home/ubuntu/redeploy.sh",	
+		"command-working-directory": "/home/ubuntu",
+		"response-message": "redeploying service",
+		"trigger-rule": {
+			"match": {
+				"type": "payload-hmac-sha1",
+				"secret": "fWPSl@8WR{+{U2J'~#{8L!]*p64Wmy",
+				"parameter": {
+					"source": "header",
+					"name": "X-Hub-Signature"
+				}	
+			}
+		}
+	}
+
+]
