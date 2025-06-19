@@ -39,9 +39,8 @@ async function cancelApproval(interaction) {
         await user.roles.remove(newMemberData.roles['guest']);
         await user.roles.add(newMemberData.roles['not-signed-up']);
         logger.info('Finished');
-
     } else {
-        // But if they are a member, we need to send an update to the sheet 
+        // But if they are a member, we need to send an update to the sheet
         await user.roles.remove(newMemberData.roles['raider']);
         await user.roles.add(newMemberData.roles['not-signed-up']);
 
@@ -49,7 +48,7 @@ async function cancelApproval(interaction) {
         logger.info('Sending updates to sheet');
 
         logger.info('Checking token...');
-        if (!(await accessToken.fresh()))  {
+        if (!(await accessToken.fresh())) {
             logger.info('Token not fresh... Refreshing');
             await accessToken.initToken();
         }
@@ -84,17 +83,19 @@ async function cancelApproval(interaction) {
 
     const engage = interaction.message.components[0].components[1];
     const approve = new ButtonBuilder()
-        .setCustomId(guest ? 'approveGuest':  'approveMember')
+        .setCustomId(guest ? 'approveGuest' : 'approveMember')
         .setLabel(guest ? 'Approve Guest' : 'Approve Member')
-        .setStyle(guest ? ButtonStyle.Success : ButtonStyle.Secondary);
+        .setStyle(guest ? ButtonStyle.Secondary : ButtonStyle.Success);
 
-    const row = new ActionRowBuilder().addComponents(approve, engage);
+    const row = new ActionRowBuilder().addComponents(approve);
+
+    if (!guest) row.addComponents(engage);
 
     interaction.editReply({
         components: [row]
     });
 
-    logger.info('Done');
+    logger.info('Done!');
     logger.section.END();
 }
 

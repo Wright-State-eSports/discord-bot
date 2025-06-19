@@ -29,7 +29,7 @@ async function approveMember(interaction) {
     logger.info('Sending updates to sheet');
 
     logger.info('Checking token...');
-    if (!(await accessToken.fresh()))  {
+    if (!(await accessToken.fresh())) {
         logger.info('Token not fresh... Refreshing');
         await accessToken.initToken();
     }
@@ -51,8 +51,7 @@ async function approveMember(interaction) {
     );
 
     if (res.status == 200) {
-        interaction.client.channels.cache
-            .get(helpChannelId).send(`<@${userId}>, you are set!`);	
+        interaction.client.channels.cache.get(helpChannelId).send(`<@${userId}>, you are set!`);
         logger.info('Success!');
     } else {
         logger.info('Something went wrong: Status code: ' + res.status);
