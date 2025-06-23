@@ -9,7 +9,8 @@ import channelList from '../../data/channel-list.json' with { type: 'json' };
  * @param { import('discord.js').Message } message The message that was deleted
  */
 async function onMessageDelete(message) {
-    if (message?.author == null) return;
+    // If the message author is null, or the message is a webhook or a bot, ignore it
+    if (message?.author == null || message.webhookId || message.author.bot) return;
 
     const messageAuthorField = `Username: ${message.author.username}
 Nickname: ${message.member.nickname}
