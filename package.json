@@ -18,7 +18,7 @@
   "author": "Joshua Quaintance",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.19.3",
+    "discord.js": "^14.20.0",
     "dotenv": "^16.5.0",
     "fuse.js": "^7.1.0",
     "googleapis": "^148.0.0",
