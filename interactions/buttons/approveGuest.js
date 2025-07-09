@@ -1,4 +1,4 @@
-import { ButtonBuilder, ButtonStyle, ActionRowBuilder, ButtonInteraction } from 'discord.js';
+import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import logger from '../../utils/loggers/logger.js';
 import newMemberData from '../../data/new-member.json' with { type: 'json' };
 

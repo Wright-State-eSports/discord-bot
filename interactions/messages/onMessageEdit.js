@@ -34,7 +34,7 @@ Channel: <#${oldMessage.channel.id}>`;
         .addFields(
             {
                 name: 'Original Message',
-                value: oldMessage.content,
+                value: oldMessage.content ?? "Couldn't fetch message",
                 inline: false
             },
             {
@@ -44,7 +44,7 @@ Channel: <#${oldMessage.channel.id}>`;
             },
             {
                 name: 'Edited Message',
-                value: newMessage.content,
+                value: newMessage.content ?? "Couldn't fetch message",
                 inline: false
             }
         )
