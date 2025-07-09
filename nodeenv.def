@@ -3,8 +3,12 @@ From: node:latest
 Stage: build
 
 %post
-        npm install -g bun
+	npm install -g bun
 
 %startscript
 	bun install
-	bun index.js
+
+	LOG_FILE_NAME="$(date +%d-%m-%Y_%H:%M:%S)"
+	touch logs/$LOG_FILE_NAME.log
+
+	bun index.js > logs/$LOG_FILE_NAME.log 2>&1
