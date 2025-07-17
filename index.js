@@ -127,8 +127,9 @@ client.on(Events.MessageDelete, onMessageDelete);
  * @param {Interaction} interaction - The interaction that was created
  */
 client.on(Events.InteractionCreate, async (interaction) => {
-    // If the interactions is created by a bot role, which the role id is: 562454890568482818, ignore it
-    if (!interaction.member.roles.cache.has('546394309688164364')) return;
+    // If the interaction is from a bot, which we can check by seeing if the member has the bot role
+    // which ONLY a bot can have, we will ignore it
+    if (interaction.member.roles.botRole) return;
 
     if (interaction.isChatInputCommand()) {
         const name = interaction.commandName;
@@ -144,7 +145,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         try {
             await command.execute(interaction);
             logger.info(
-                `<@${interaction.user.id}> (${interaction.user.username}) used \`${name}\` command` +
+                `<@${interaction.user.id}> (${interaction.user.username}) used \`${name}\` command ` +
                     `in <#${interaction.channel.id}> (${interaction.channel.name})`
             );
         } catch (err) {

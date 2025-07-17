@@ -1,6 +1,6 @@
 import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import logger from '../../utils/loggers/logger.js';
-import newMemberData from '../../data/new-member.json' with { type: 'json' };
+import roleIds from '../../data/role-ids.json' with { type: 'json' };
 
 /**
  *
@@ -21,8 +21,8 @@ async function approveGuest(interaction) {
 
     logger.info('Attaching appropriate roles...');
 
-    await user.roles.add(newMemberData.roles['guest']);
-    await user.roles.remove(newMemberData.roles['not-signed-up']);
+    await user.roles.add(roleIds['guest']);
+    await user.roles.remove(roleIds['not-signed-up']);
 
     logger.info('Finished');
 

@@ -3,7 +3,7 @@ import { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'disc
 import Fuse from 'fuse.js';
 
 import logger from '../utils/loggers/logger.js';
-import newMemberData from '../data/new-member.json' with { type: 'json' };
+import roleIds from '../data/role-ids.json' with { type: 'json' };
 
 /**
  * Applies restrictions from not being signed up
@@ -11,7 +11,7 @@ import newMemberData from '../data/new-member.json' with { type: 'json' };
  * @param { GuildMember } member
  */
 export async function addRestrictions(member) {
-    member.roles.add(newMemberData['roles']['not-signed-up']);
+    member.roles.add(roleIds['not-signed-up']);
 }
 
 /**
@@ -33,7 +33,7 @@ export async function initiateApprovalEmbed(message) {
 
         // Find the user in the discord server
         let notSignedUp = message.guild.roles.cache.find(
-            (role) => role.id == newMemberData.roles['not-signed-up']
+            (role) => role.id == roleIds['not-signed-up']
         );
 
         let fetchUser = notSignedUp.members;

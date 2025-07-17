@@ -1,7 +1,7 @@
 import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 
 import logger from '../../utils/loggers/logger.js';
-import newMemberData from '../../data/new-member.json' with { type: 'json' };
+import roleIds from '../../data/role-ids.json' with { type: 'json' };
 import accessToken from '../../accessToken.js';
 
 /**
@@ -36,13 +36,13 @@ async function cancelApproval(interaction) {
 
     if (guest) {
         // If they are a guest, we don't need to send any update to the sheet
-        await user.roles.remove(newMemberData.roles['guest']);
-        await user.roles.add(newMemberData.roles['not-signed-up']);
+        await user.roles.remove(roleIds['guest']);
+        await user.roles.add(roleIds['not-signed-up']);
         logger.info('Finished');
     } else {
         // But if they are a member, we need to send an update to the sheet
-        await user.roles.remove(newMemberData.roles['raider']);
-        await user.roles.add(newMemberData.roles['not-signed-up']);
+        await user.roles.remove(roleIds['raider']);
+        await user.roles.add(roleIds['not-signed-up']);
 
         logger.info('Finished');
         logger.info('Sending updates to sheet');
