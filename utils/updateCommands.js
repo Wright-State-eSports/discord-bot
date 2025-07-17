@@ -3,7 +3,7 @@ import { REST, Routes } from 'discord.js';
 import logger from './loggers/logger.js';
 import loadCommands from './loadCommands.js';
 
-async function updateCommands() {
+export async function updateCommands() {
     try {
         const rest = new REST().setToken(process.env._TOKEN_SECRET);
         const CLIENT_ID = process.env.CLIENT_ID;
@@ -23,4 +23,4 @@ async function updateCommands() {
     }
 }
 
-await updateCommands();
+if (import.meta.main) updateCommands();
