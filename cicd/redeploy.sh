@@ -4,6 +4,8 @@
 sudo singularity instance stop prod-bot
 
 cd esports-bot
+rm -f bun.lock
+rm -f package-lock.json
 git pull
 
 # If the current git commit has the string "nodeenv.def" in it,
