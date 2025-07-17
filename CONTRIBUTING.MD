@@ -49,7 +49,7 @@ Singularity is used to containerize node and bun to run the bot in AWS that help
 --
 
 This discord bot utilizes the [discord.js](https://discordjs.dev/) to talk to the discord API.  
-It runs on the latest LTS version of Node.js which is v22.15
+It runs on the latest version of Node.js which is v24.4
 
 The dependencies that are used for this repository is listed inside of [package.json](package.json) listed as dependencies. Dev dependencies are also listed in the package.json and they are dependencies used only for development.
 
