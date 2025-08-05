@@ -14,53 +14,28 @@ export default {
                 .setName('game')
                 .setDescription('The game you want to register for.')
                 .setRequired(true)
-                .addChoices({ name: 'Valorant', value: 'valorant' })
+                .addChoices(
+                    { name: 'Valorant', value: 'valorant' },
+                    { name: 'Leage of Legends', value: 'league' }
+                )
         ),
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const game = interaction.options.getString('game');
         logger.info(`User ${interaction.user.tag} registering for ${game}.`);
+        logger.info('Setting up prefilled form request...');
 
-        logger.info('Getting pre-filled form...');
+        const formUrls = {
+            valorant:
+                'https://docs.google.com/forms/d/e/1FAIpQLSdEuJtc1s5JUx4maggG3MVAPJoJKb-i9zeJ3-93XcyffpbYjw/viewform?usp=pp_url&entry.903914901=',
+            league: 'https://docs.google.com/forms/d/e/1FAIpQLSekh7zYekNCQ1D-pEjsHN8OFTbOZDcARX5QeamKk53x9s7rjw/viewform?usp=pp_url&entry.1495248989='
+        };
 
-        logger.section.START();
-        logger.info('Checking token...');
-        if (!(await accessToken.fresh())) {
-            logger.info('Token not fresh... Refreshing');
-            await accessToken.initToken();
-        }
-
-        await interaction.editReply('Getting form... Please wait.');
-
-        let res = await fetch(
-            `https://script.google.com/macros/s/AKfycbzpzOZfih6BYnx0U0vc-JMI9nvtzT_4xW1QeNQXNWhcQiWi0HJKckdx-c0PoAwvTUDS2w/exec?discordId=${interaction.user.tag}`,
-            {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${accessToken.token}`
-                }
-            }
-        );
-
-        if (res.status == 200) {
-            let data = await res.json();
-            logger.info('Pre-filled form received successfully.');
-            logger.info('Sending form to user...');
-
-            const formUrl = data.body.link;
-            await interaction.editReply({
-                content: `Please fill out the form for ${game}: ${formUrl}`,
-                ephemeral: true
-            });
-        } else {
-            logger.info('Failed to get pre-filled form');
-
-            await interaction.editReply({
-                content: 'There was an error retrieving the form. Please try again later.',
-                ephemeral: true
-            });
-        }
+        await interaction.editReply({
+            content: `Please fill out the form for ${game}: ${formUrls[game]}${encodeURIComponent(interaction.user.tag)}`,
+            ephemeral: true
+        });
 
         logger.section.END();
     }
