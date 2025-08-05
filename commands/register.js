@@ -16,7 +16,7 @@ export default {
                 .setRequired(true)
                 .addChoices(
                     { name: 'Valorant', value: 'valorant' },
-                    { name: 'Leage of Legends', value: 'league' }
+                    { name: 'League of Legends', value: 'league' }
                 )
         ),
     async execute(interaction) {
