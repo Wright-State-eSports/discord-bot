@@ -102,6 +102,14 @@ client.once(Events.ClientReady, async (ready) => {
     );
 });
 
+client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    // Ignore reactions from bots
+    if (user.bot) return;
+
+    // If the reaction is on a message in a specific channel, we will initiate the approval embed
+    if (reaction.emoji.name === '🐝') await reaction.remove();
+});
+
 /**
  * When there is a message, we will try to check if it's in a specific channel
  * and if it's a webhook
