@@ -84,9 +84,10 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildPresences,
-        GatewayIntentBits.GuildModeration
+        GatewayIntentBits.GuildModeration,
+        GatewayIntentBits.GuildMessageReactions
     ],
-    partials: [Partials.Channel, Partials.Message]
+    partials: [Partials.Channel, Partials.Message, Partials.Reaction]
 });
 
 await token.initToken();
@@ -106,7 +107,10 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     // Ignore reactions from bots
     if (user.bot) return;
 
-    // If the reaction is on a message in a specific channel, we will initiate the approval embed
+    if (reaction.partial) {
+        await reaction.fetch();
+    }
+
     if (reaction.emoji.name === '🐝') await reaction.remove();
 });
 
