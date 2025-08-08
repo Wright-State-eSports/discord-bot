@@ -126,7 +126,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         !banned.includes(reaction.emoji.name)
     ) {
         await reaction.remove();
-        logger.info(`Removed bee reaction from <@${user.id}>`);
+        logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
     }
 });
 
