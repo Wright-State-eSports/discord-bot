@@ -116,7 +116,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         (user.id === '229263471739404288' ||
             user.id === '532356748531466272' ||
             user.id === '352024616958689280') &&
-        reaction.emoji.name.includes('bee')
+        reaction.emoji.name.toLowerCase().includes('bee')
     )
         return await reaction.remove();
 });
