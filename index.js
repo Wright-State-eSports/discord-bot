@@ -111,14 +111,21 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         await reaction.fetch();
     }
 
-    if (reaction.emoji.name === '🐝') return await reaction.remove();
+    if (reaction.emoji.name === '🐝') {
+        await reaction.remove();
+        logger.info(`Removed bee reaction from <@${user.id}>`);
+        return;
+    }
+
     if (
         (user.id === '229263471739404288' ||
             user.id === '532356748531466272' ||
             user.id === '352024616958689280') &&
         reaction.emoji.name.toLowerCase().includes('bee')
-    )
-        return await reaction.remove();
+    ) {
+        await reaction.remove();
+        logger.info(`Removed bee reaction from <@${user.id}>`);
+    }
 });
 
 /**
