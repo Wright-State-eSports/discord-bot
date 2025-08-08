@@ -111,7 +111,12 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         await reaction.fetch();
     }
 
-    if (reaction.emoji.name === '🐝') await reaction.remove();
+    if (reaction.emoji.name === '🐝') return await reaction.remove();
+    if (
+        (user.id === '229263471739404288' || user.id === '532356748531466272') &&
+        reaction.emoji.name.includes('bee')
+    )
+        return await reaction.remove();
 });
 
 /**
