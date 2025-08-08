@@ -117,11 +117,13 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         return;
     }
 
+    const banned = ['✈️', '🗼', '✅', '❌', '🫃'];
+
     if (
         (user.id === '229263471739404288' ||
             user.id === '532356748531466272' ||
             user.id === '352024616958689280') &&
-        reaction.emoji.name.toLowerCase().includes('bee')
+        !banned.includes(reaction.emoji.name)
     ) {
         await reaction.remove();
         logger.info(`Removed bee reaction from <@${user.id}>`);
