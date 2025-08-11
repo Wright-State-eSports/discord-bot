@@ -34,7 +34,10 @@ Channel: <#${oldMessage.channel.id}>`;
         .addFields(
             {
                 name: 'Original Message',
-                value: oldMessage.content ?? "Couldn't fetch message",
+                value:
+                    oldMessage.content.length < 1024
+                        ? (oldMessage.content ?? "Couldn't fetch message")
+                        : 'Message too long to display',
                 inline: false
             },
             {
@@ -44,7 +47,10 @@ Channel: <#${oldMessage.channel.id}>`;
             },
             {
                 name: 'Edited Message',
-                value: newMessage.content ?? "Couldn't fetch message",
+                value:
+                    newMessage.content.length < 1024
+                        ? (newMessage.content ?? "Couldn't fetch message")
+                        : 'Message too long to display',
                 inline: false
             }
         )
