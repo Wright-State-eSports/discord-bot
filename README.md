@@ -5,7 +5,7 @@
 </p>
 
 It looks like you've stumbled upon the source code for the bot for Wright State eSports discord server. The discord bot is mainly only for Wright State eSports servers.
-
+  
 &nbsp;
 
 > [!NOTE]  
