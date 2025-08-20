@@ -104,29 +104,33 @@ client.once(Events.ClientReady, async (ready) => {
 });
 
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
-    // Ignore reactions from bots
-    if (user.bot) return;
+    try {
+        // Ignore reactions from bots
+        if (user.bot) return;
 
-    if (reaction?.partial) {
-        await reaction.fetch();
-    }
+        if (reaction?.partial) {
+            await reaction.fetch();
+        }
 
-    if (reaction?.emoji?.name === '🐝') {
-        await reaction.remove();
-        logger.info(`Removed bee reaction from <@${user.id}>`);
-        return;
-    }
+        if (reaction?.emoji?.name === '🐝') {
+            await reaction.remove();
+            logger.info(`Removed bee reaction from <@${user.id}>`);
+            return;
+        }
 
-    const banned = ['✈️', '🗼', '✅', '❌', '🫃'];
+        const banned = ['✈️', '🗼', '✅', '❌', '🫃'];
 
-    if (
-        (user.id === '229263471739404288' ||
-            user.id === '532356748531466272' ||
-            user.id === '352024616958689280') &&
-        !banned.includes(reaction.emoji.name)
-    ) {
-        await reaction.remove();
-        logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
+        if (
+            (user.id === '229263471739404288' ||
+                user.id === '532356748531466272' ||
+                user.id === '352024616958689280') &&
+            !banned.includes(reaction.emoji.name)
+        ) {
+            await reaction.remove();
+            logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
+        }
+    } catch (err) {
+        logger.error(err, 'Error handling MessageReactionAdd');
     }
 });
 
@@ -155,42 +159,43 @@ client.on(Events.MessageDelete, onMessageDelete);
  * @param {Interaction} interaction - The interaction that was created
  */
 client.on(Events.InteractionCreate, async (interaction) => {
-    // If the interaction is from a bot, which we can check by seeing if the member has the bot role
-    // which ONLY a bot can have, we will ignore it
-    if (interaction?.member?.roles.botRole) return;
+    try {
+        // If the interaction is from a bot, which we can check by seeing if the member has the bot role
+        // which ONLY a bot can have, we will ignore it
+        if (interaction?.member?.roles.botRole) return;
 
-    if (interaction.isChatInputCommand()) {
-        const name = interaction.commandName;
-        const command = interaction.client.commands.get(name);
+        if (interaction.isChatInputCommand()) {
+            const name = interaction.commandName;
+            const command = interaction.client.commands.get(name);
 
-        if (!command) {
-            await interaction.reply(`No command named \`${name}\``);
-            logger.info(
-                `<@${interaction.user.id}> tried to use \`${name}\` command, but it doesn't exist`
-            );
-        }
+            if (!command) {
+                await interaction.reply(`No command named \`${name}\``);
+                logger.info(
+                    `<@${interaction.user.id}> tried to use \`${name}\` command, but it doesn't exist`
+                );
+                return;
+            }
 
-        try {
             await command.execute(interaction);
             logger.info(
                 `<@${interaction.user.id}> (${interaction.user.username}) used \`${name}\` command ` +
                     `in <#${interaction.channel.id}> (${interaction.channel.name})`
             );
-        } catch (err) {
-            logger.error(err, 'Error executing command');
+        } else if (interaction.isButton()) {
+            switch (interaction.component.customId) {
+                case 'approveMember':
+                    approveMember(interaction);
+                    break;
+                case 'approveGuest':
+                    approveGuest(interaction);
+                    break;
+                case 'cancelApproval':
+                    cancelApproval(interaction);
+                    break;
+            }
         }
-    } else if (interaction.isButton()) {
-        switch (interaction.component.customId) {
-            case 'approveMember':
-                approveMember(interaction);
-                break;
-            case 'approveGuest':
-                approveGuest(interaction);
-                break;
-            case 'cancelApproval':
-                cancelApproval(interaction);
-                break;
-        }
+    } catch (err) {
+        logger.error(err, 'Error handling interaction');
     }
 });
 

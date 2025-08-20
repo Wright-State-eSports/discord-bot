@@ -20,26 +20,45 @@ export default {
                 )
         ),
     async execute(interaction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        try {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-        const game = interaction.options.getString('game');
-        logger.info(`User <@${interaction.user.id}>(${interaction.user.tag}) registering for \`${game}\`.`);
-        logger.info('Setting up prefilled form request...');
+            const game = interaction.options.getString('game');
+            logger.info(
+                `User <@${interaction.user.id}>(${interaction.user.tag}) registering for \`${game}\`.`
+            );
+            logger.info('Setting up prefilled form request...');
 
-        const formUrls = {
-            valorant:
-                'https://docs.google.com/forms/d/e/1FAIpQLSdEuJtc1s5JUx4maggG3MVAPJoJKb-i9zeJ3-93XcyffpbYjw/viewform?usp=pp_url&entry.903914901=',
-            league: 'https://docs.google.com/forms/d/e/1FAIpQLSekh7zYekNCQ1D-pEjsHN8OFTbOZDcARX5QeamKk53x9s7rjw/viewform?usp=pp_url&entry.1495248989=',
-            r6: 'https://docs.google.com/forms/d/e/1FAIpQLScfq1SnhKnQQp-Or9tW_rN4_KtAGOTIXZ_SQk7rRo2og1oDOg/viewform?usp=pp_url&entry.906228833='
-        };
+            const formUrls = {
+                valorant:
+                    'https://docs.google.com/forms/d/e/1FAIpQLSdEuJtc1s5JUx4maggG3MVAPJoJKb-i9zeJ3-93XcyffpbYjw/viewform?usp=pp_url&entry.903914901=',
+                league: 'https://docs.google.com/forms/d/e/1FAIpQLSekh7zYekNCQ1D-pEjsHN8OFTbOZDcARX5QeamKk53x9s7rjw/viewform?usp=pp_url&entry.1495248989=',
+                r6: 'https://docs.google.com/forms/d/e/1FAIpQLScfq1SnhKnQQp-Or9tW_rN4_KtAGOTIXZ_SQk7rRo2og1oDOg/viewform?usp=pp_url&entry.906228833='
+            };
 
-        logger.info('Link sent successfully!');
+            logger.info('Link sent successfully!');
 
-        await interaction.editReply({
-            content: `Please fill out the form for ${game}: ${formUrls[game]}${encodeURIComponent(interaction.user.tag)}`,
-            ephemeral: true
-        });
+            await interaction.editReply({
+                content: `Please fill out the form for ${game}: ${formUrls[game]}${encodeURIComponent(interaction.user.tag)}`,
+                ephemeral: true
+            });
 
-        logger.section.END();
+            logger.section.END();
+        } catch (error) {
+            logger.error('Error in register command:', error);
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({
+                    content:
+                        'An error occurred while processing your registration. Please try again later.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.reply({
+                    content:
+                        'An error occurred while processing your registration. Please try again later.',
+                    ephemeral: true
+                });
+            }
+        }
     }
 };
