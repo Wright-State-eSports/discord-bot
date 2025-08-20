@@ -107,11 +107,11 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     // Ignore reactions from bots
     if (user.bot) return;
 
-    if (reaction.partial) {
+    if (reaction?.partial) {
         await reaction.fetch();
     }
 
-    if (reaction.emoji.name === '🐝') {
+    if (reaction?.emoji?.name === '🐝') {
         await reaction.remove();
         logger.info(`Removed bee reaction from <@${user.id}>`);
         return;
@@ -157,7 +157,7 @@ client.on(Events.MessageDelete, onMessageDelete);
 client.on(Events.InteractionCreate, async (interaction) => {
     // If the interaction is from a bot, which we can check by seeing if the member has the bot role
     // which ONLY a bot can have, we will ignore it
-    if (interaction.member.roles.botRole) return;
+    if (interaction?.member?.roles.botRole) return;
 
     if (interaction.isChatInputCommand()) {
         const name = interaction.commandName;
