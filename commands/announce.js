@@ -7,7 +7,7 @@ export default {
     admin: true,
     data: new SlashCommandBuilder()
         .setName('announce')
-        .setDescription('Sends a message to the set announcement channel')
+        .setDescription('Waits for a respond that will be sent to the announcement channel')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // admin perms only
         .addChannelOption((option) =>
             option
@@ -15,30 +15,13 @@ export default {
                 .setDescription('The channel to announce to')
                 .addChannelTypes(ChannelType.GuildAnnouncement, ChannelType.GuildText)
                 .setRequired(true)
-        )
-        .addStringOption((option) =>
-            option.setName('message').setDescription('Message to announcement').setRequired(true)
-        )
-        .addAttachmentOption((option) =>
-            option.setName('attachment').setDescription('Attachment to send')
         ),
-
     async execute(interaction) {
-        const message = interaction.options.getString('message');
-
         /**
          * @type {import('discord.js').Channel | false}
          */
         const channel = interaction.options.getChannel('channel');
-        const attachment = interaction.options.getAttachment('attachment');
-
-        if (!message && !attachment) {
-            interaction.reply({
-                content: 'Message or attachment is not provided',
-                flags: MessageFlags.Ephemeral
-            });
-            return;
-        }
+        // const attachment = interaction.options.getAttachment('attachment');
 
         if (!channel) {
             interaction.reply({
@@ -48,13 +31,34 @@ export default {
             return;
         }
 
-        const payload = {
-            content: message
-        };
+        const getResponse = await interaction.reply({
+            content: 'Waiting for your message... You will have 20 seconds to respond.',
+            flags: MessageFlags.Ephemeral,
+            withResponse: true
+        });
 
-        if (attachment) payload.files = [attachment];
+        let response;
 
-        channel.send(payload);
-        interaction.reply({ content: 'Message Sent!', flags: MessageFlags.Ephemeral });
+        try {
+            response = await getResponse.resource.message.channel.awaitMessages({
+                filter: (m) => m.author.id === interaction.user.id,
+                max: 1,
+                time: 20_000,
+                errors: ['time']
+            });
+            interaction.editReply('Message received!');
+        } catch (e) {
+            interaction.editReply('Times up... Re run the command to try again.');
+            return;
+        }
+
+        const msg = response.first();
+        const message = msg.content;
+        const attachments = msg.attachments;
+
+        channel.send({ content: message, attachments });
+        interaction.editReply({
+            content: `Message Sent in <#${channel.id}>`
+        });
     }
 };
