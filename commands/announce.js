@@ -54,6 +54,15 @@ export default {
 
         const msg = response.first();
         const message = msg.content;
+
+        if (message.length >= 1500) {
+            interaction.reply({
+                content:
+                    "Um, I don't have nitro unlike you. Please limit the characters to the 2000 character limit."
+            });
+            return;
+        }
+
         const attachments = msg.attachments;
 
         channel.send({ content: message, attachments });
