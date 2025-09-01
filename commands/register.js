@@ -14,8 +14,8 @@ export default {
                 .setDescription('The game you want to register for.')
                 .setRequired(true)
                 .addChoices(
-                    { name: 'Valorant', value: 'valorant' },
-                    { name: 'League of Legends', value: 'league' },
+                    // { name: 'Valorant', value: 'valorant' },
+                    // { name: 'League of Legends', value: 'league' },
                     { name: 'Rainbow Six Siege', value: 'r6' }
                 )
         ),
