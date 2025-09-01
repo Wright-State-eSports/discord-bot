@@ -117,18 +117,21 @@ export async function initiateApprovalEmbed(message) {
                     'https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective'
                 );
 
+            // Configure payload
+            let payload = {
+                content: '▬▬▬▬▬▬▬▬▬▬',
+                embeds: [embed]
+            };
+
             if (!userAlreadyApproved) {
                 row.addComponents(approve);
 
                 if (data.member) row.addComponents(engageLink);
+                payload.components = [row];
             }
 
             logger.info('Sending embed');
-            await message.channel.send({
-                content: '▬▬▬▬▬▬▬▬▬▬',
-                embeds: [embed],
-                components: [row]
-            });
+            await message.channel.send();
 
             logger.info('Sending reponse to sheet');
         }
