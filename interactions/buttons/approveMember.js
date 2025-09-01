@@ -34,21 +34,18 @@ async function approveMember(interaction) {
         await accessToken.initToken();
     }
 
-    let res = await fetch(
-        'https://script.google.com/macros/s/AKfycbxDT-veY2NcRZD_yg_lZUQTfR_uzHIG8tRBjZAONTV7/dev',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken.token}`
-            },
-            body: JSON.stringify({
-                mode: 'approve',
-                name: data.fields[0].value,
-                rowNum: data.fields[4].value
-            })
-        }
-    );
+    let res = await fetch(process.env.SCRIPT_LINK, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken.token}`
+        },
+        body: JSON.stringify({
+            mode: 'approve',
+            name: data.fields[0].value,
+            rowNum: data.fields[4].value
+        })
+    });
 
     if (res.status == 200) {
         interaction.client.channels.cache.get(helpChannelId).send(`<@${userId}>, you are set!`);

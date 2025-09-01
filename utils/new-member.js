@@ -16,7 +16,7 @@ export async function addRestrictions(member) {
 
 /**
  *
- * @param {Message} message
+ * @param { import('discord.js').Message } message
  * @returns
  */
 export async function initiateApprovalEmbed(message) {
@@ -31,23 +31,13 @@ export async function initiateApprovalEmbed(message) {
     try {
         const data = JSON.parse(message.content);
 
-        // Find the user in the discord server
-        let notSignedUp = message.guild.roles.cache.find(
-            (role) => role.id == roleIds['not-signed-up']
-        );
-
-        let fetchUser = notSignedUp.members;
-
-        const fuse = new Fuse(fetchUser.toJSON(), {
-            keys: ['user.username']
-        });
-
-        fetchUser = fuse.search(data.username);
+        let possibleMatches = await message.guild.members.fetch({ query: data.username, limit: 5 });
+        let userAlreadyApproved = false;
 
         logger.info('Parse successful!');
 
         // User isn't in discord
-        if (fetchUser.length === 0) {
+        if (possibleMatches.size === 0) {
             logger.info('User not in discord');
             const embed = new EmbedBuilder()
                 .setColor('Red')
@@ -59,7 +49,7 @@ export async function initiateApprovalEmbed(message) {
                 );
 
             logger.info('Sending embed');
-            message.channel.send({
+            await message.channel.send({
                 content: '▬▬▬▬▬▬▬▬▬▬',
                 embeds: [embed]
             });
@@ -70,11 +60,25 @@ export async function initiateApprovalEmbed(message) {
             /**
              * @type { User }
              */
-            const user = fetchUser[0].item.user;
+            const user = possibleMatches.first().user;
 
             const embed = new EmbedBuilder();
+            userAlreadyApproved =
+                user.roles.cache.has(roleIds['raider']) || user.roles.cache.has(roleIds['guest']);
 
-            if (data.member)
+            if (userAlreadyApproved) {
+                embed
+                    .setColor('Green')
+                    .setTitle('User is already a member')
+                    .setThumbnail(user.displayAvatarURL())
+                    .addFields(
+                        { name: 'Name', value: data.name },
+                        { name: 'Discord @', value: `<@${user.id}>` },
+                        { name: 'Discord Username', value: data.username },
+                        { name: 'Email', value: data.email },
+                        { name: 'Sheet Row', value: `${data.rowNum}` }
+                    );
+            } else if (data.member)
                 embed
                     .setColor('Green')
                     .setTitle('New Member')
@@ -112,12 +116,14 @@ export async function initiateApprovalEmbed(message) {
                     'https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective'
                 );
 
-            row.addComponents(approve);
+            if (!userAlreadyApproved) {
+                row.addComponents(approve);
 
-            if (data.member) row.addComponents(engageLink);
+                if (data.member) row.addComponents(engageLink);
+            }
 
             logger.info('Sending embed');
-            message.channel.send({
+            await message.channel.send({
                 content: '▬▬▬▬▬▬▬▬▬▬',
                 embeds: [embed],
                 components: [row]
