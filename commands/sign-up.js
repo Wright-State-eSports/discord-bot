@@ -41,7 +41,7 @@ export default {
 
     async execute(interaction) {
         let message;
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         logger.info(
             `User ${interaction.user.tag} (${interaction.user.id}) used the ${interaction.options.getSubcommand()} subcommand.`
