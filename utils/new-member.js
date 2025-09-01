@@ -131,7 +131,7 @@ export async function initiateApprovalEmbed(message) {
             }
 
             logger.info('Sending embed');
-            await message.channel.send();
+            await message.channel.send(payload);
 
             logger.info('Sending reponse to sheet');
         }
