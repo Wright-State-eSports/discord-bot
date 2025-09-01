@@ -4,6 +4,7 @@
 export { default as approveMember } from './buttons/approveMember.js';
 export { default as approveGuest } from './buttons/approveGuest.js';
 export { default as cancelApproval } from './buttons/cancelApproval.js';
+export { default as signUpForm } from './buttons/signUpForm.js';
 
 // Messages
 export { default as onMessageEdit } from './messages/onMessageEdit.js';

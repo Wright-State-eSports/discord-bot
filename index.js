@@ -49,7 +49,8 @@ import {
     approveGuest,
     cancelApproval,
     onMessageEdit,
-    onMessageDelete
+    onMessageDelete,
+    signUpForm
 } from './interactions/index.js';
 import { addRestrictions, initiateApprovalEmbed } from './utils/new-member.js';
 
@@ -191,6 +192,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     break;
                 case 'cancelApproval':
                     cancelApproval(interaction);
+                    break;
+                case 'sign-up-form':
+                    signUpForm(interaction);
                     break;
             }
         }
