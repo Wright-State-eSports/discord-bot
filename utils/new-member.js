@@ -58,11 +58,12 @@ export async function initiateApprovalEmbed(message) {
         } else {
             logger.info('User found!');
             /**
-             * @type { User }
+             * @type { import('discord.js').GuildMember }
              */
-            const user = possibleMatches.first().user;
+            const user = possibleMatches.first();
 
             const embed = new EmbedBuilder();
+
             userAlreadyApproved =
                 user.roles.cache.has(roleIds['raider']) || user.roles.cache.has(roleIds['guest']);
 
