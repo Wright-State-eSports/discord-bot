@@ -1,5 +1,10 @@
 # Contributing
 
+> [!WARNING]
+> This README is not updated.
+
+## TODO: UPDATE README AFTER REWRITE
+
 ## Language
 
 This Discord bot uses JavaScript as it's language
