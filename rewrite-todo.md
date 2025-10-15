@@ -17,7 +17,7 @@
 
 - [ ] New member
 - [ ] Message Delete
-- [ ] Message Update
+- [x] Message Update
 
 #### Buttons
 

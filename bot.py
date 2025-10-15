@@ -108,6 +108,8 @@ async def on_ready():
         status=discord.Status.online,
     )
 
+    # TODO: Add a way to notify when the bot is updated/restarted in cli and Discord even if
+    # TODO: the cli and discord logger isn't enabled
     logger.success(logger.section)
     logger.success(f'{bot.user} is online and ready!')
     logger.success(logger.section)
