@@ -2,16 +2,16 @@
 
 ## Core
 
-- [ ] Discord.py
-- [ ] Client initialization
-- [ ] Logger
+- [x] Discord.py
+- [x] Client initialization
+- [x] Logger
   - Destination: CMD/Log
-    - [ ] Info
-    - [ ] Error?
+    - [x] Info
+    - [x] Error?
   - Destination: Discord Channel
-    - [ ] Info
-    - [ ] Error?
-- [ ] Command Handler
+    - [x] Info
+    - [x] Error?
+- [-] Command Handler _(We don't have to make a command handler. The library will handle that for us)_
 
 ## Interactions
 
