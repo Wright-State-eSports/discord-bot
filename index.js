@@ -2,7 +2,7 @@
  * Wright State University eSports
  * Discord Bot
  *
- * ===========================
+* ===========================
  * Contributors:
  * @author Joshua Quaintance
  * ===========================
@@ -104,36 +104,36 @@ client.once(Events.ClientReady, async (ready) => {
     );
 });
 
-client.on(Events.MessageReactionAdd, async (reaction, user) => {
-    try {
-        // Ignore reactions from bots
-        if (user.bot) return;
+// client.on(Events.MessageReactionAdd, async (reaction, user) => {
+//     try {
+//         // Ignore reactions from bots
+//         if (user.bot) return;
 
-        if (reaction?.partial) {
-            await reaction.fetch();
-        }
+//         if (reaction?.partial) {
+//             await reaction.fetch();
+//         }
 
-        if (reaction?.emoji?.name === '🐝') {
-            await reaction.remove();
-            logger.info(`Removed bee reaction from <@${user.id}>`);
-            return;
-        }
+//         if (reaction?.emoji?.name === '🐝') {
+//             await reaction.remove();
+//             logger.info(`Removed bee reaction from <@${user.id}>`);
+//             return;
+//         }
 
-        const banned = ['✈️', '🗼', '✅', '❌', '🫃'];
+//         const banned = ['✈️', '🗼', '✅', '❌', '🫃'];
 
-        if (
-            (user.id === '229263471739404288' ||
-                user.id === '532356748531466272' ||
-                user.id === '352024616958689280') &&
-            !banned.includes(reaction.emoji.name)
-        ) {
-            await reaction.remove();
-            logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
-        }
-    } catch (err) {
-        logger.error(err, 'Error handling MessageReactionAdd');
-    }
-});
+//         if (
+//             (user.id === '229263471739404288' ||
+//                 user.id === '532356748531466272' ||
+//                 user.id === '352024616958689280') &&
+//             !banned.includes(reaction.emoji.name)
+//         ) {
+//             await reaction.remove();
+//             logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
+//         }
+//     } catch (err) {
+//         logger.error(err, 'Error handling MessageReactionAdd');
+//     }
+// });
 
 /**
  * When there is a message, we will try to check if it's in a specific channel
