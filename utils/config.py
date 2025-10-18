@@ -31,7 +31,6 @@ def load_config(config: ConfigOptions | list[ConfigOptions]) -> None:
     # Load the config from the JSON file
     with open(f'{__config_base_path__}{config}.json', 'r') as conf:
         c = load(conf)
-        print(c)
         __configs__[config] = c
 
 
