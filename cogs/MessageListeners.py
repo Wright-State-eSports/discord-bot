@@ -11,6 +11,8 @@ from discord import Embed
 # Type hint imports
 from discord import Colour, RawMessageUpdateEvent
 
+from utils.config import ConfigOptions, get_config
+
 
 async def setup(bot: commands.Bot):
     """Setup the Listeners cog."""
@@ -66,7 +68,7 @@ class MessageListeners(commands.Cog):
 
         description = (
             f'[Jump to message]({after.jump_url})\n'
-            f'Username: {after.author} <@{after.author.id}>\n'
+            f'Username: {after.author.name}\n'
             f'Nickname: {after.author.display_name}\n'
             f'User @: {after.author.mention}\n'
             f'Channel: {after.channel.mention}'
@@ -101,9 +103,60 @@ class MessageListeners(commands.Cog):
             .set_footer(text='Time')
         )
 
-        # TODO: Update so it will send to multiple channel according to config.
-        log_channel = self.bot.get_channel(1427123486832463975)
-        if log_channel:
-            await log_channel.send(embed=embed)
-        else:
-            logger.error('Log channel not found, cannot log edited message')
+        channel_list = get_config(ConfigOptions.CHANNELS).get('message_logs', [])
+
+        for channel_id in channel_list:
+            log_channel = self.bot.get_channel(channel_id)
+
+            if log_channel:
+                await log_channel.send(embed=embed)
+            else:
+                logger.error('Log channel not found, cannot log edited message')
+
+    @logger.catch
+    @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        """
+        Log deleted messages.
+
+        This uses the cached message from Discord.
+        It will ignore messages that are not cached.
+        """
+
+        # First ignore bot messages
+        if message.author.bot:
+            return
+
+        description = (
+            f'Username: {message.author.name}\n'
+            f'Nickname: {message.author.display_name}\n'
+            f'User @: {message.author.mention}\n'
+            f'Channel: {message.channel.mention}'
+        )
+
+        embed = (
+            Embed(
+                title='Message Deleted',
+                description=description,
+                color=Colour.from_str('#f02828'),
+                timestamp=datetime.now(ZoneInfo('America/New_York')),
+            )
+            .add_field(
+                name='Deleted Message',
+                value=message.content
+                if len(message.content) < 1024
+                else '*Message too long to display*',
+                inline=False,
+            )
+            .set_footer(text='Time')
+        )
+
+        channel_list = get_config(ConfigOptions.CHANNELS).get('message_logs', [])
+
+        for channel_id in channel_list:
+            log_channel = self.bot.get_channel(channel_id)
+
+            if log_channel:
+                await log_channel.send(embed=embed)
+            else:
+                logger.error('Log channel not found, cannot log deleted message')

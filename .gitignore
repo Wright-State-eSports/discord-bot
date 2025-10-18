@@ -18,6 +18,9 @@ lerna-debug.log*
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
+*.bak
+*.tmp
+
 # Virtualenv should only be used for local development and not be committed because
 # we are going to be using container
 # Virtualenv
