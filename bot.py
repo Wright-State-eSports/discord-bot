@@ -58,6 +58,10 @@ INTENTS = discord.Intents(
     moderation=True,
 )
 
+__proper_wd__ = os.path.dirname(os.path.abspath(__file__))
+logger.info(f'Ensuring working directory is properly set to {__proper_wd__}')
+os.chdir(__proper_wd__)
+
 logger.info('Creating bot instance')
 bot = commands.Bot(command_prefix='$-', intents=INTENTS)
 
