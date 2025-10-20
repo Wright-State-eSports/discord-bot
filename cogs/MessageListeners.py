@@ -32,7 +32,6 @@ class MessageListeners(commands.Cog):
 
     @logger.catch
     @commands.Cog.listener()
-    # async def on_message_edit(self, before: Message, after: Message):
     async def on_raw_message_edit(self, payload: RawMessageUpdateEvent):
         """
         Log edited messages by receiving raw data from Discord.

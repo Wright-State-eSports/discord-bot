@@ -92,8 +92,6 @@ async def on_ready():
     for cog in os.listdir('./cogs'):
         if not cog.startswith('__') and cog.endswith('.py'):
             try:
-                logger.info(f'Loading cog: {cog}')
-
                 await bot.load_extension(f'cogs.{cog[:-3]}')
                 logger.success(f'{cog} Loaded')
 

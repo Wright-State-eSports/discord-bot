@@ -11,12 +11,12 @@
   - Destination: Discord Channel
     - [x] Info
     - [x] Error?
-- [-] Command Handler _(We don't have to make a command handler. The library will handle that for us)_
+- <s>[-] Command Handler</s> _(We don't have to make a command handler. The library will handle that for us)_
 
 ## Interactions
 
 - [ ] New member
-- [ ] Message Delete
+- [x] Message Delete
 - [x] Message Update
 
 #### Buttons
