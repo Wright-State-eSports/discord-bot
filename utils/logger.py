@@ -39,7 +39,7 @@ def initialize_logger():
     # Logs info and success
     logger.add(
         'logs/info.log',
-        format='{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}',
+        format='{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <16} | {message}',
         level='INFO',
         enqueue=True,
         rotation='00:00',  # Rotate at midnight
@@ -49,7 +49,7 @@ def initialize_logger():
 
     logger.add(
         'logs/errors.log',
-        format='{time:YYYY-MM-DD HH:mm:ss} | {name: <15} | {message}',
+        format='{time:YYYY-MM-DD HH:mm:ss} | {name: <16} | {message}',
         level='ERROR',
         backtrace=True,
         diagnose=True,
@@ -61,7 +61,7 @@ def initialize_logger():
     # Combined log file
     logger.add(
         'logs/combined.log',
-        format='{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <15} | {message}',
+        format='{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <16} | {message}',
         enqueue=True,
         rotation='00:00',  # Rotate at midnight
         compression='zip',  # Compress rotated files
@@ -126,7 +126,7 @@ def enable_cli_logging():
         colorize=True,
         format='<green>{time:YYYY-MM-DD HH:mm:ss}</green> | '
         + '<level>{level: <8}</level> | '
-        + '<magenta>{name: <15}</magenta> | '
+        + '<magenta>{name: <16}</magenta> | '
         + '<level>{message}</level>',
         enqueue=True,
     )
