@@ -44,7 +44,7 @@ def initialize_logger():
         enqueue=True,
         rotation='00:00',  # Rotate at midnight
         retention='3 days',
-        filter=lambda record: record['level'].name == 'INFO' or record['level'].name == 'SUCCESS',
+        filter=lambda record: record['level'].name in ('INFO', 'SUCCESS'),
     )
 
     logger.add(
@@ -64,7 +64,7 @@ def initialize_logger():
         format='{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name: <16} | {message}',
         enqueue=True,
         rotation='00:00',  # Rotate at midnight
-        compression='zip',  # Compress rotated files
+        retention='7 days',
     )
 
 
@@ -76,9 +76,8 @@ async def enable_discord_logging(bot: Bot):
 
     # First attach the bot instance to the logger for access in the sink
     logger.info('Enabling Discord logging, attaching bot instance...')
-    logger.__discord = type('obj', (object,), {})()  # Create a simple empty object
-    logger.__discord.bot = bot
-    logger.__discord.channel = bot.get_channel(int(LOG_CHANNEL_ID)) if LOG_CHANNEL_ID else None
+    global __LOG_CHANNEL__
+    __LOG_CHANNEL__ = bot.get_channel(int(LOG_CHANNEL_ID)) if LOG_CHANNEL_ID else None
 
     logger.info('Adding Discord log sink...')
     logger.add(
@@ -100,9 +99,8 @@ async def discord_log_sink(message):
     if content == logger.section:
         return
 
-    if logger.__discord.bot:
-        bot: Bot = logger.__discord.bot
-        channel = logger.__discord.channel
+    if __LOG_CHANNEL__:
+        channel = __LOG_CHANNEL__
 
         if channel:
             await channel.send(f'` {level: <8} `  {content}')
@@ -110,9 +108,9 @@ async def discord_log_sink(message):
         else:
             print('Log channel not found, cannot send Discord logs.')
     else:
-        logger.remove(discord_log_sink)
-        logger.warning('Bot instance not attached to logger, cannot send Discord logs.')
+        logger.warning('Log Channel not found, cannot send Discord logs.')
         logger.warning('Removing sink')
+        logger.remove(discord_log_sink)
 
 
 def enable_cli_logging():
