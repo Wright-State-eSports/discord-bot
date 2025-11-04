@@ -2,7 +2,7 @@
  * Wright State University eSports
  * Discord Bot
  *
-* ===========================
+ * ===========================
  * Contributors:
  * @author Joshua Quaintance
  * ===========================
@@ -67,7 +67,8 @@ logger.info('==============================');
 logger.info('Booting up...');
 
 logger.info('Creating client...');
-const TOKEN = process.env._TOKEN_SECRET;
+const TOKEN = process.env.DISCORD_TOKEN;
+console.log(TOKEN);
 const startTime = new Date();
 
 /**
@@ -121,10 +122,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
 
         const not_banned = ['✈️', '🗼', '✅', '❌', '🫃'];
 
-        if (
-            user.id === '229263471739404288' &&
-            !not_banned.includes(reaction.emoji.name)
-        ) {
+        if (user.id === '229263471739404288' && !not_banned.includes(reaction.emoji.name)) {
             await reaction.remove();
             logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
         }

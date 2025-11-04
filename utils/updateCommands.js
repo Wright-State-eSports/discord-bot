@@ -5,7 +5,7 @@ import loadCommands from './loadCommands.js';
 
 export async function updateCommands() {
     try {
-        const rest = new REST().setToken(process.env._TOKEN_SECRET);
+        const rest = new REST().setToken(process.env.DISCORD_TOKEN);
         const CLIENT_ID = process.env.CLIENT_ID;
         const commandsArr = await loadCommands();
 
