@@ -105,6 +105,12 @@ client.once(Events.ClientReady, async (ready) => {
     );
 });
 
+/**
+ *  Removes a reactions from a specific user.
+ *  This is a really bad implementation because it had no comments and targets specific users while exposing their personal userID.
+ *  UserIDs were removed and code commented out to restore server functionality to users.
+ */
+/*
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
     try {
         // Ignore reactions from bots
@@ -122,7 +128,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
 
         const not_banned = ['✈️', '🗼', '✅', '❌', '🫃'];
 
-        if (user.id === '229263471739404288' && !not_banned.includes(reaction.emoji.name)) {
+        if (user.id === '00000' && !not_banned.includes(reaction.emoji.name)) {
             await reaction.remove();
             logger.info(`Removed ${reaction.emoji.name} reaction from <@${user.id}>`);
         }
@@ -130,6 +136,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
         logger.error(err, 'Error handling MessageReactionAdd');
     }
 });
+*/
 
 /**
  * When there is a message, we will try to check if it's in a specific channel
