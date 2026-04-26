@@ -110,6 +110,7 @@ client.once(Events.ClientReady, async (ready) => {
  *  This is a really bad implementation because it had no comments and targets specific users while exposing their personal userID.
  *  UserIDs were removed and code commented out to restore server functionality to users.
  */
+
 /*
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
     try {
