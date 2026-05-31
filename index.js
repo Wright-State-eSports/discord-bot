@@ -64,11 +64,10 @@ logger.info('==============================');
 logger.info('     WRIGHT STATE ESPORTS     ');
 logger.info('          DISCORD BOT         ');
 logger.info('==============================');
-logger.info('Booting up...');
+logger.info('Booting up...!');
 
 logger.info('Creating client...');
 const TOKEN = process.env.DISCORD_TOKEN;
-console.log(TOKEN);
 const startTime = new Date();
 
 /**
