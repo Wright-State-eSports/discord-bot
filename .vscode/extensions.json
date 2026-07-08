@@ -1,8 +1,8 @@
 {
-    "recommendations": [
-        "aaron-bond.better-comments",
-        "mikestead.dotenv",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
-    ]
+  "recommendations": [
+    "VoidZero.vite-plus-extension-pack",
+    "oxc.oxc-vscode",
+    "aaron-bond.better-comments",
+    "oven.bun-vscode"
+  ]
 }
