@@ -1,4 +1,7 @@
+import { DiscordAPIError, EmbedBuilder, WebhookClient } from 'discord.js';
 import pino, { type Logger } from 'pino';
+
+import { Config } from './config';
 
 // ==========================================
 // 1. Base Logger Setup
@@ -73,7 +76,21 @@ class BaseAppLogger {
         if (prop in target) {
           return Reflect.get(target, prop, receiver);
         }
-        return Reflect.get(target.pinoInstance, prop);
+
+        const value = Reflect.get(target.pinoInstance, prop);
+
+        /**
+         * If the property is a function, bind it to the pinoInstance to ensure the correct context.
+         * This is necessary because pino methods rely on the correct `this` context to function properly.
+         * By binding the method to the pinoInstance, we ensure that it behaves as expected when called.
+         * This is especially important for methods like `info`, `warn`, `error`, etc., which are used for logging.
+         * Without binding, calling these methods could result in unexpected behavior or errors.
+         */
+        if (typeof value === 'function') {
+          return value.bind(target.pinoInstance);
+        }
+
+        return value;
       },
     });
   }
@@ -120,3 +137,85 @@ export interface AppLoggerConstructor {
  * and when the parent logger is garbage collected, preventing memory leaks.
  */
 export const AppLogger = BaseAppLogger as unknown as AppLoggerConstructor;
+export const baseLogger = new AppLogger('discord');
+
+/**
+ * In Discord Logging
+ */
+export type DiscordLoggerFn = (
+  logger: pino.LogFn,
+  useEmbeds: boolean,
+  ...args: Parameters<pino.LogFn>
+) => Promise<void>;
+
+let webhook: WebhookClient | null = null;
+
+export async function initDiscordLogger() {
+  const hookLogger = new AppLogger('discord-logger');
+
+  if (webhook) {
+    hookLogger.warn('Discord webhook is already initialized.');
+    return;
+  }
+
+  const WEBHOOK_ID = await Config.get('webhook.id');
+  const { WEBHOOK_TOKEN } = process.env;
+
+  if (!WEBHOOK_ID || !/^\d{17,19}$/.test(WEBHOOK_ID)) {
+    hookLogger.error('Discord webhook id is not set in config.json or is invalid, In Discord logging setup failed.');
+    return;
+  }
+
+  if (!WEBHOOK_TOKEN) {
+    hookLogger.error('Discord webhook token is not set in .env. In Discord logging setup failed.');
+    return;
+  }
+
+  // Initialize the webhook client
+  webhook = new WebhookClient({
+    id: WEBHOOK_ID,
+    token: WEBHOOK_TOKEN,
+  });
+
+  // After initializing, we will first test if ID and Token are valid
+  // by sending a test message.
+  try {
+    const embed = new EmbedBuilder()
+      .setTitle('Discord Logger Initialized')
+      .setDescription('The Discord logger has been successfully initialized and is now active.')
+      .setColor('#3498DB')
+      .setTimestamp();
+
+    hookLogger.info('Sending test message to Discord webhook...');
+    await webhook.send({ embeds: [embed] });
+    hookLogger.info('Test message sent successfully. Discord logger is now active.');
+  } catch (error) {
+    if (error instanceof DiscordAPIError && error.code === 10015) {
+      hookLogger.error('Invalid Discord webhook ID or token. Please check your configuration.');
+    } else {
+      hookLogger.error(error, 'Failed to send test message to Discord webhook.');
+    }
+  }
+}
+
+export const logDiscord: DiscordLoggerFn = async (logger, useEmbeds: boolean, ...args) => {
+  const hookLogger = new AppLogger('discord-logger');
+  logger(...args); // We will always log to the transports no matter what, because logs are important.
+
+  if (!webhook) {
+    hookLogger.error('Discord webhook is not initialized. Please call initDiscordLogger() first.');
+    hookLogger.error(
+      'We already log to the transports, but the discord webhook will not be triggered defeating the purpose of this logger.',
+    );
+    return;
+  }
+
+  if (!useEmbeds) {
+    try {
+      await webhook.send({ content: args.join(' ') });
+    } catch (error) {
+      hookLogger.error(error, 'Failed to send log message to Discord webhook.');
+    }
+    return;
+  }
+};

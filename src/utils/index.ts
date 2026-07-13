@@ -4,7 +4,18 @@
  */
 import type { Interaction } from 'discord.js';
 
-import { AppLogger } from './logger';
-
 export const userCombo = (interaction: Interaction) => `${interaction.user.tag} (${interaction.user.id})`;
-export const baseLogger = new AppLogger('discord');
+
+export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    timeoutId = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+}
