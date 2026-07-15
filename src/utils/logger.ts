@@ -1,4 +1,4 @@
-import { DiscordAPIError, EmbedBuilder, WebhookClient } from 'discord.js';
+import { DiscordAPIError, EmbedBuilder, WebhookClient, type APIEmbed, type HexColorString } from 'discord.js';
 import pino, { type Logger } from 'pino';
 
 import { Config } from './config';
@@ -40,8 +40,12 @@ const _BASE_PINO = pino({
   },
 });
 
-// Custom pino type that includes the "success" custom level
-type PinoInstance = Logger<'success', boolean>;
+// Standard pino logger type used by the app.
+type PinoInstance = Logger;
+
+type TaggedLogFn = pino.LogFn & {
+  level?: number;
+};
 
 // Type intersection to tell your IDE that all pino.Logger functions exist
 export type AppLoggerInstance = BaseAppLogger & PinoInstance;
@@ -87,7 +91,21 @@ class BaseAppLogger {
          * Without binding, calling these methods could result in unexpected behavior or errors.
          */
         if (typeof value === 'function') {
-          return value.bind(target.pinoInstance);
+          const bound = value.bind(target.pinoInstance);
+
+          if (typeof prop === 'string' && prop in target.pinoInstance.levels.values) {
+            const tagged = bound as TaggedLogFn;
+            Object.defineProperty(tagged, 'level', {
+              value:
+                target.pinoInstance.levels.values[prop as keyof typeof target.pinoInstance.levels.values] ??
+                target.pinoInstance.levelVal,
+              enumerable: false,
+              configurable: true,
+            });
+            return tagged;
+          }
+
+          return bound;
         }
 
         return value;
@@ -148,74 +166,120 @@ export type DiscordLoggerFn = (
   ...args: Parameters<pino.LogFn>
 ) => Promise<void>;
 
-let webhook: WebhookClient | null = null;
+/**
+ * Class that handles the in discord logging.
+ */
+export class DiscordLogger {
+  private static readonly LEVEL_COLOR_MAP: Record<number, HexColorString> = {
+    30: '#3498DB', // Info
+    40: '#f59e0b', // Warn
+    50: '#ef4444', // Error
+    60: '#b91c1c', // Fatal
+  };
 
-export async function initDiscordLogger() {
-  const hookLogger = new AppLogger('discord-logger');
+  private static webhook: WebhookClient | null = null;
+  private static hookLogger = new AppLogger('discord-logger');
 
-  if (webhook) {
-    hookLogger.warn('Discord webhook is already initialized.');
-    return;
-  }
-
-  const WEBHOOK_ID = await Config.get('webhook.id');
-  const { WEBHOOK_TOKEN } = process.env;
-
-  if (!WEBHOOK_ID || !/^\d{17,19}$/.test(WEBHOOK_ID)) {
-    hookLogger.error('Discord webhook id is not set in config.json or is invalid, In Discord logging setup failed.');
-    return;
-  }
-
-  if (!WEBHOOK_TOKEN) {
-    hookLogger.error('Discord webhook token is not set in .env. In Discord logging setup failed.');
-    return;
-  }
-
-  // Initialize the webhook client
-  webhook = new WebhookClient({
-    id: WEBHOOK_ID,
-    token: WEBHOOK_TOKEN,
-  });
-
-  // After initializing, we will first test if ID and Token are valid
-  // by sending a test message.
-  try {
-    const embed = new EmbedBuilder()
-      .setTitle('Discord Logger Initialized')
-      .setDescription('The Discord logger has been successfully initialized and is now active.')
-      .setColor('#3498DB')
-      .setTimestamp();
-
-    hookLogger.info('Sending test message to Discord webhook...');
-    await webhook.send({ embeds: [embed] });
-    hookLogger.info('Test message sent successfully. Discord logger is now active.');
-  } catch (error) {
-    if (error instanceof DiscordAPIError && error.code === 10015) {
-      hookLogger.error('Invalid Discord webhook ID or token. Please check your configuration.');
-    } else {
-      hookLogger.error(error, 'Failed to send test message to Discord webhook.');
+  /**
+   * The entrypoint for initializing the webhook.
+   * @returns if initialization is successful or if it's already initialized
+   */
+  public static async init(): Promise<boolean> {
+    if (this.webhook) {
+      this.hookLogger.warn('Discord webhook is already initialized.');
+      return true;
     }
+
+    const WEBHOOK_ID = await Config.get('webhook.id');
+    const { WEBHOOK_TOKEN } = process.env;
+
+    if (!WEBHOOK_ID || !/^\d{17,19}$/.test(WEBHOOK_ID)) {
+      this.hookLogger.error(
+        'Discord webhook id is not set in config.json or is invalid, In Discord logging setup failed.',
+      );
+      return false;
+    }
+
+    if (!WEBHOOK_TOKEN) {
+      this.hookLogger.error('Discord webhook token is not set in .env. In Discord logging setup failed.');
+      return false;
+    }
+
+    // Initialize the webhook client
+    this.webhook = new WebhookClient({
+      id: WEBHOOK_ID,
+      token: WEBHOOK_TOKEN,
+    });
+
+    // After initializing, we will first test if ID and Token are valid
+    // by sending a test message.
+    try {
+      this.hookLogger.info('Sending test message to Discord webhook...');
+      await this._sendEmbed('The Discord logger has been successfully initialized and is now active.', '#3498DB', {
+        title: 'Discord Logger Initialized',
+      });
+
+      this.hookLogger.info('Test message sent successfully. Discord logger is now active.');
+      return true;
+    } catch (error) {
+      if (error instanceof DiscordAPIError && error.code === 10015) {
+        this.hookLogger.error('Invalid Discord webhook ID or token. Please check your configuration.');
+      } else {
+        this.hookLogger.error(error, 'Failed to send test message to Discord webhook.');
+      }
+      return false;
+    }
+  }
+
+  public static async embed(logger: TaggedLogFn, msg: string, args?: { error?: unknown; options?: APIEmbed }) {
+    const { error: err, options } = args ?? {};
+    const level = logger.level ?? 30;
+
+    // Send the log to the logger first.
+    await this._sendToLogger(logger, err, msg);
+    await this._sendEmbed(msg, this.LEVEL_COLOR_MAP[level] ?? '#000000', options);
+  }
+
+  /**
+   * Methods that actually sends the embed to the webhook.
+   * @param args Description and color is omitted because they will be required argument.
+   */
+  private static async _sendEmbed(
+    msg: string,
+    color: HexColorString,
+    args?: Omit<APIEmbed, 'description' | 'color'>,
+  ): Promise<void> {
+    if (await this._notInit('_sendEmbed')) return;
+
+    try {
+      const embed = EmbedBuilder.from(args ?? {})
+        .setDescription(msg)
+        .setColor(color)
+        .setTimestamp(); // always set timestamp
+
+      await this.webhook!.send({ embeds: [embed] });
+    } catch (error) {
+      this.hookLogger.error(error, 'Failed to send log message to Discord webhook.');
+    }
+  }
+
+  /**
+   * Triggers the logger function with the provided message and error.
+   */
+  private static async _sendToLogger(logger: TaggedLogFn, err: unknown, msg: string) {
+    logger(err, msg);
+  }
+
+  /**
+   * Checks if the webhook is initialized. If not, logs an error and returns true.
+   * @returns if webhook is not initialized
+   */
+  private static async _notInit(ctx: string): Promise<boolean> {
+    if (!this.webhook) {
+      this.hookLogger.child(ctx).error('Discord webhook is not initialized. Please call init() first.');
+      return true;
+    }
+
+    return false;
   }
 }
-
-export const logDiscord: DiscordLoggerFn = async (logger, useEmbeds: boolean, ...args) => {
-  const hookLogger = new AppLogger('discord-logger');
-  logger(...args); // We will always log to the transports no matter what, because logs are important.
-
-  if (!webhook) {
-    hookLogger.error('Discord webhook is not initialized. Please call initDiscordLogger() first.');
-    hookLogger.error(
-      'We already log to the transports, but the discord webhook will not be triggered defeating the purpose of this logger.',
-    );
-    return;
-  }
-
-  if (!useEmbeds) {
-    try {
-      await webhook.send({ content: args.join(' ') });
-    } catch (error) {
-      hookLogger.error(error, 'Failed to send log message to Discord webhook.');
-    }
-    return;
-  }
-};

@@ -39,10 +39,18 @@ import { Client as BaseClient, Events, GatewayIntentBits, Partials } from 'disco
 
 import autocompleteHandler from './events/autocomplete';
 import commandHandler from './events/command';
-import { baseLogger } from './utils';
-import { loadAllCommands } from './utils/commands';
+import { loadAllCommands, registry } from './utils/commands';
+import Config from './utils/config';
+import { baseLogger, DiscordLogger } from './utils/logger';
 
+// Setting up logger
 const logger = baseLogger.child('index');
+
+// Initializing configuration
+await Config.init();
+
+// Initializing In-Discord logging
+await DiscordLogger.init();
 
 logger.info('╔════════════════════════╗');
 logger.info('║  WRIGHT STATE ESPORTS  ║');
@@ -51,7 +59,9 @@ logger.info('╚═════════════════════�
 logger.info('Booting up!');
 const timing = {
   start: new Date(),
-  ready: undefined as Date | undefined,
+  setup: 0,
+  login: new Date(),
+  ready: new Date(),
 };
 
 logger.info('Setting up Discord token');
@@ -75,6 +85,7 @@ const client = new BaseClient({
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildModeration,
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildWebhooks,
   ],
   partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember],
 }) as Client;
@@ -88,14 +99,31 @@ logger.info('Adding event handlers');
 /**
  * Ready Handler
  */
-client.once(Events.ClientReady, (client) => {
+client.once(Events.ClientReady, async (client) => {
   timing.ready = new Date();
-  logger.info(`Ready in ${timing.ready.getTime() - timing.start.getTime()}ms`);
+
+  const logged = `Logged in as <@${client.user.id}>(${client.user.tag})!\n\n`;
+  const setup = `Setup completed in ${timing.setup}ms\n`;
+  const ready = `Bot ready in ${timing.ready.getTime() - timing.start.getTime()}ms\n`;
+  const login = `Logged in in ${timing.login.getTime() - timing.start.getTime()}ms\n`;
+
+  const commandsField = registry.map((_, name) => `- ${name}`).join('\n');
+
+  await DiscordLogger.embed(logger.info, logged + setup + login + ready, {
+    options: {
+      title: 'Bot Ready',
+      color: 0x00ff00,
+      fields: [
+        { name: 'Commands Loaded', value: `${registry.size}` },
+        { name: 'Commands', value: commandsField },
+      ],
+    },
+  });
   logger.info(`Logged in as ${client.user.tag}!`);
 });
 
 /**
- * Comand Handler
+ * Command Handler
  */
 client.on(Events.InteractionCreate, commandHandler);
 
@@ -104,6 +132,9 @@ client.on(Events.InteractionCreate, commandHandler);
  */
 client.on(Events.InteractionCreate, autocompleteHandler);
 
-logger.debug(`Setup completed in ${new Date().getTime() - timing.start.getTime()}ms`);
+timing.setup = new Date().getTime() - timing.start.getTime();
+logger.debug(`Setup completed in ${timing.setup}ms`);
+
+timing.login = new Date();
 logger.info('Logging in');
 await client.login(DISCORD_TOKEN);

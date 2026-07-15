@@ -1,7 +1,7 @@
 import { REST, Routes } from 'discord.js';
 
-import { baseLogger } from '.';
 import { loadAllCommands, registry, registryInitialized } from './commands';
+import { baseLogger } from './logger';
 
 const logger = baseLogger.child('register-commands');
 

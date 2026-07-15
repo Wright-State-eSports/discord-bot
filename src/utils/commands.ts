@@ -2,7 +2,7 @@ import { Collection } from 'discord.js';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { baseLogger } from '.';
+import { baseLogger } from './logger';
 
 const logger = baseLogger.child('utils').child('commands');
 

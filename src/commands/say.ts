@@ -1,6 +1,6 @@
 import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder, type TextBasedChannel } from 'discord.js';
 
-import { baseLogger } from '../utils';
+import { baseLogger } from '../utils/logger';
 
 export default {
   data: new SlashCommandBuilder()

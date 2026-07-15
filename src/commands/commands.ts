@@ -3,7 +3,8 @@ import type { ChatInputCommandInteraction, AutocompleteInteraction } from 'disco
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 
 import { loadCommand, registry, unloadCommand, unloaded } from '../utils/commands';
-import { baseLogger, userCombo } from '../utils/index.ts';
+import { userCombo } from '../utils/index.ts';
+import { baseLogger } from '../utils/logger';
 
 export default {
   data: new SlashCommandBuilder()

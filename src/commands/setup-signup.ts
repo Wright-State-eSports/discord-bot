@@ -13,7 +13,7 @@ import {
   type AnyComponentBuilder,
 } from 'discord.js';
 
-import { baseLogger } from '../utils';
+import { baseLogger } from '../utils/logger';
 
 const separator = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
 const actionRow = (components: AnyComponentBuilder[]) => new ActionRowBuilder().addComponents(components);
@@ -49,12 +49,17 @@ const messages = [
   separator,
 
   '## Signup Form\n' +
-    'Please fill out the form by clicking the button below. **Your username will be autofilled**, so you can skip the first question.',
+    'Please fill out the form by clicking the button below or using the </signup> member command. \n' +
+    '**Your username will be autofilled**, so you can skip the first question.\n' +
+    "If this button doesn't work, please ask one of the Officers for help in <#1207448695189282869>",
   actionRow([new ButtonBuilder().setCustomId('signup-form').setLabel('Sign Up Form').setStyle(ButtonStyle.Success)]),
 
   separator,
 
-  '## Guest Form\n' + 'Please fill out the form by clicking on the button below **If you are signing up as a guest**.',
+  '## Guest Form\n' +
+    'Please fill out the form by clicking on the button below or using the </signup> guest command. \n' +
+    '**If you are signing up as a guest**.' +
+    'Using the commnad will autofill your username, so you can skip the first question.\n',
   actionRow([
     new ButtonBuilder().setLabel('Guest Form').setStyle(ButtonStyle.Link).setURL('https://forms.gle/jbBbWaeyYU3qBa6F9'),
   ]),
