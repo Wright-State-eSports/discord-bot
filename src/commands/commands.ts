@@ -2,9 +2,7 @@ import type { ChatInputCommandInteraction, AutocompleteInteraction } from 'disco
 
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 
-import { loadCommand, registry, unloadCommand, unloaded } from '../utils/commands';
-import { userCombo } from '../utils/index.ts';
-import { baseLogger } from '../utils/logger';
+import { CommandRegistry, AppLogger, registerCommands, userCombo } from '../utils';
 
 export default {
   data: new SlashCommandBuilder()
@@ -47,12 +45,17 @@ export default {
             .setRequired(true)
             .setAutocomplete(true),
         ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('update')
+        .setDescription('Update the commands on Discord API. This is usually done automatically on bot startup.'),
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     // We're going to defer the reply because we're doing some async work
     // and we also want all the replies to be ephemeral
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const logger = baseLogger.child('command | commands');
+    const logger = AppLogger.get('discord').child('command | commands');
 
     const subcommand = interaction.options.getSubcommand();
 
@@ -70,6 +73,10 @@ export default {
         case 'unload':
           await unload(interaction, logger);
           break;
+
+        case 'update':
+          await update(interaction, logger);
+          break;
       }
     } catch (error) {
       logger.error(error);
@@ -83,14 +90,16 @@ export default {
 
     switch (focusedOption.name) {
       case 'loaded-command': {
-        const filtered = registry.filter((command) => command.data.name.startsWith(focusedOption.value));
+        const filtered = CommandRegistry.filter((command) => command.data.name.startsWith(focusedOption.value));
         const choices = filtered.map((command) => ({ name: command.data.name, value: command.data.name }));
         await interaction.respond(choices);
         return;
       }
 
       case 'unloaded-command': {
-        const filtered = Array.from(unloaded).filter((commandName) => commandName.startsWith(focusedOption.value));
+        const filtered = Array.from(CommandRegistry.unloaded).filter((commandName) =>
+          commandName.startsWith(focusedOption.value),
+        );
         const choices = filtered.map((commandName) => ({ name: commandName, value: commandName }));
         await interaction.respond(choices);
         return;
@@ -105,7 +114,7 @@ const reload: SubcommandHandler = async (interaction, parentLogger) => {
   const commandName = interaction.options.getString('loaded-command', true);
 
   logger.debug(`Reloading command: ${commandName}`);
-  const command = registry.find((command) => command.data.name === commandName);
+  const command = CommandRegistry.find((command) => command.data.name === commandName);
 
   if (!command) {
     logger.warn(`Command not found: ${commandName}`);
@@ -115,14 +124,14 @@ const reload: SubcommandHandler = async (interaction, parentLogger) => {
 
   // We'll just use the unload and load helpers
   try {
-    const unloadedCommand = await unloadCommand(commandName);
+    const unloadedCommand = await CommandRegistry.unload(commandName);
     if (!unloadedCommand) {
       logger.warn(`Failed to unload command: ${commandName}`);
       await interaction.editReply({ content: `Failed to unload command: ${commandName}` });
       return;
     }
 
-    const loadedCommand = await loadCommand(commandName);
+    const loadedCommand = await CommandRegistry.load(commandName);
     if (!loadedCommand) {
       logger.warn(`Failed to load command: ${commandName}`);
       await interaction.editReply({ content: `Failed to load command: ${commandName}` });
@@ -143,14 +152,14 @@ const load: SubcommandHandler = async (interaction, parentLogger) => {
   const commandName = interaction.options.getString('unloaded-command', true);
 
   logger.debug(`Loading command: ${commandName}`);
-  if (registry.has(commandName)) {
+  if (CommandRegistry.has(commandName)) {
     logger.warn(`Command already loaded: ${commandName}`);
     await interaction.editReply({ content: `Command already loaded: ${commandName}` });
     return;
   }
 
   try {
-    const loadedCommand = await loadCommand(commandName);
+    const loadedCommand = await CommandRegistry.load(commandName);
     if (!loadedCommand) {
       logger.warn(`Failed to load command: ${commandName}`);
       await interaction.editReply({ content: `Failed to load command: ${commandName}` });
@@ -179,14 +188,14 @@ const unload: SubcommandHandler = async (interaction, parentLogger) => {
   }
 
   logger.debug(`Unloading command: ${commandName}`);
-  if (!registry.has(commandName)) {
+  if (!CommandRegistry.has(commandName)) {
     logger.warn(`${userCombo(interaction)} attempted to unload a command that is not loaded: ${commandName}`);
     await interaction.editReply({ content: `Command not found: ${commandName}` });
     return;
   }
 
   try {
-    const unloadedCommand = await unloadCommand(commandName);
+    const unloadedCommand = await CommandRegistry.unload(commandName);
     if (!unloadedCommand) {
       logger.warn(`Failed to unload command: ${commandName}`);
       await interaction.editReply({ content: `Failed to unload command: ${commandName}` });
@@ -198,5 +207,20 @@ const unload: SubcommandHandler = async (interaction, parentLogger) => {
   } catch (error) {
     logger.error(error, `Error occurred while unloading command: ${commandName}`);
     await interaction.editReply({ content: `Error occurred while unloading command: ${commandName}` });
+  }
+};
+
+const update: SubcommandHandler = async (interaction, parentLogger) => {
+  const logger = parentLogger.child('update');
+
+  logger.info('Updating commands on Discord API');
+
+  try {
+    await registerCommands();
+    logger.info('Successfully updated commands on Discord API');
+    await interaction.editReply({ content: 'Successfully updated commands on Discord API' });
+  } catch (error) {
+    logger.error(error, 'Error occurred while updating commands on Discord API');
+    await interaction.editReply({ content: 'Error occurred while updating commands on Discord API' });
   }
 };

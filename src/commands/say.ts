@@ -1,6 +1,6 @@
 import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder, type TextBasedChannel } from 'discord.js';
 
-import { baseLogger } from '../utils/logger';
+import { AppLogger } from '../utils';
 
 export default {
   data: new SlashCommandBuilder()
@@ -24,7 +24,7 @@ export default {
     ),
   async execute(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const logger = baseLogger.child('command').child('say');
+    const logger = AppLogger.get('discord').child(['command', 'say']);
     const message = interaction.options.getString('message', true);
     const attachment = interaction.options.getAttachment('attachment');
     let channel = (interaction.options.getChannel('channel') as TextBasedChannel | null) ?? interaction.channel;

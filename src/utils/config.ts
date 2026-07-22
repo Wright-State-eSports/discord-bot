@@ -1,6 +1,6 @@
 import type { AppLoggerInstance } from './logger';
 
-import { debounce } from '.';
+import { debounce } from './utils';
 
 interface ListenerNode {
   listeners: Set<ConfigChangeListener>;

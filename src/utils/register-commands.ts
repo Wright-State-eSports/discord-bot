@@ -1,9 +1,9 @@
 import { REST, Routes } from 'discord.js';
 
-import { loadAllCommands, registry, registryInitialized } from './commands';
-import { baseLogger } from './logger';
+import { CommandRegistry } from './command-registry';
+import { AppLogger } from './logger';
 
-const logger = baseLogger.child('register-commands');
+const logger = AppLogger.get('discord').child('register-commands');
 
 export async function registerCommands() {
   try {
@@ -14,16 +14,16 @@ export async function registerCommands() {
     if (!CLIENT_ID) throw new Error('No client ID provided');
     if (!GUILD_ID) throw new Error('No guild ID provided');
 
-    if (!registryInitialized) {
+    if (!CommandRegistry.initialized) {
       logger.warn('Command registry not initialized');
       logger.info('Loading commands');
 
-      await loadAllCommands();
+      await CommandRegistry.loadAll();
     } else logger.info('Command registry initialized, skipping command loading');
 
-    logger.info(`Registering ${registry.size} slash (/) commands`);
+    logger.info(`Registering ${CommandRegistry.size} slash (/) commands`);
     logger.info('Converting objects to JSON');
-    const serialized: object[] = registry.map((command) => command.data.toJSON());
+    const serialized: object[] = CommandRegistry.map((command) => command.data.toJSON());
 
     const rest = new REST().setToken(DISCORD_TOKEN);
 

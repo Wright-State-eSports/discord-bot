@@ -37,14 +37,10 @@
  */
 import { Client as BaseClient, Events, GatewayIntentBits, Partials } from 'discord.js';
 
-import autocompleteHandler from './events/autocomplete';
-import commandHandler from './events/command';
-import { loadAllCommands, registry } from './utils/commands';
-import Config from './utils/config';
-import { baseLogger, DiscordLogger } from './utils/logger';
+import { AppLogger, DiscordLogger, EventRegistry, Config, CommandRegistry } from './utils';
 
 // Setting up logger
-const logger = baseLogger.child('index');
+const logger = new AppLogger('discord').child('main');
 
 // Initializing configuration
 await Config.init();
@@ -52,10 +48,10 @@ await Config.init();
 // Initializing In-Discord logging
 await DiscordLogger.init();
 
-logger.info('╔════════════════════════╗');
+logger.info('╔══════════════════════════╗');
 logger.info('║  WRIGHT STATE ESPORTS  ║');
 logger.info('║      DISCORD  BOT      ║');
-logger.info('╚════════════════════════╝');
+logger.info('╚══════════════════════════╝');
 logger.info('Booting up!');
 const timing = {
   start: new Date(),
@@ -92,7 +88,7 @@ const client = new BaseClient({
 
 logger.info('Client setup!');
 logger.info('Attaching commands');
-client.commands = await loadAllCommands();
+await CommandRegistry.initialize();
 
 logger.info('Adding event handlers');
 
@@ -107,14 +103,14 @@ client.once(Events.ClientReady, async (client) => {
   const ready = `Bot ready in ${timing.ready.getTime() - timing.start.getTime()}ms\n`;
   const login = `Logged in in ${timing.login.getTime() - timing.start.getTime()}ms\n`;
 
-  const commandsField = registry.map((_, name) => `- ${name}`).join('\n');
+  const commandsField = CommandRegistry.map((_, name) => `- ${name}`).join('\n');
 
   await DiscordLogger.embed(logger.info, logged + setup + login + ready, {
     options: {
       title: 'Bot Ready',
       color: 0x00ff00,
       fields: [
-        { name: 'Commands Loaded', value: `${registry.size}` },
+        { name: 'Commands Loaded', value: `${CommandRegistry.size}` },
         { name: 'Commands', value: commandsField },
       ],
     },
@@ -122,15 +118,13 @@ client.once(Events.ClientReady, async (client) => {
   logger.info(`Logged in as ${client.user.tag}!`);
 });
 
-/**
- * Command Handler
- */
-client.on(Events.InteractionCreate, commandHandler);
+logger.info('Adding event handlers');
+await EventRegistry.initialize();
 
-/**
- * Autocomplete Handler
- */
-client.on(Events.InteractionCreate, autocompleteHandler);
+for (const event of EventRegistry.values()) {
+  logger.info(`Adding event handler for ${event.name}`);
+  client.on(event.event, event.execute);
+}
 
 timing.setup = new Date().getTime() - timing.start.getTime();
 logger.debug(`Setup completed in ${timing.setup}ms`);

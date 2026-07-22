@@ -58,8 +58,24 @@ class BaseAppLogger {
   private pinoInstance: PinoInstance;
   public readonly path: string[];
 
-  // Note: Constructor signatures/overloads are removed from here
-  // and moved to the exported interface below.
+  private static _instances: Map<string, AppLoggerInstance> = new Map();
+
+  /**
+   * Retrieves an existing logger instance for the given scope or creates a new one if it doesn't exist.
+   * @param scope The scope string or array of scopes for which to retrieve or create a logger instance.
+   * @returns An instance of BaseAppLogger for the specified scope.
+   */
+  public static get(scope: string | string[]): AppLoggerInstance {
+    const key = Array.isArray(scope) ? scope.join('|') : scope;
+    if (this._instances.has(key)) {
+      return this._instances.get(key)!;
+    }
+
+    const instance = new BaseAppLogger(scope) as unknown as AppLoggerInstance;
+    this._instances.set(key, instance);
+    return instance;
+  }
+
   constructor(input: string | string[]) {
     if (typeof input === 'string') {
       this.path = [input];
@@ -75,7 +91,7 @@ class BaseAppLogger {
     });
 
     // Return the Proxy. No type assertion needed here at runtime.
-    return new Proxy(this, {
+    const proxyInstance = new Proxy(this, {
       get(target, prop, receiver) {
         if (prop in target) {
           return Reflect.get(target, prop, receiver);
@@ -83,13 +99,6 @@ class BaseAppLogger {
 
         const value = Reflect.get(target.pinoInstance, prop);
 
-        /**
-         * If the property is a function, bind it to the pinoInstance to ensure the correct context.
-         * This is necessary because pino methods rely on the correct `this` context to function properly.
-         * By binding the method to the pinoInstance, we ensure that it behaves as expected when called.
-         * This is especially important for methods like `info`, `warn`, `error`, etc., which are used for logging.
-         * Without binding, calling these methods could result in unexpected behavior or errors.
-         */
         if (typeof value === 'function') {
           const bound = value.bind(target.pinoInstance);
 
@@ -111,6 +120,14 @@ class BaseAppLogger {
         return value;
       },
     });
+
+    if (typeof input === 'string') {
+      BaseAppLogger._instances.set(input, proxyInstance as unknown as AppLoggerInstance);
+    } else {
+      BaseAppLogger._instances.set(input.join('|'), proxyInstance as unknown as AppLoggerInstance);
+    }
+
+    return proxyInstance as unknown as AppLoggerInstance;
   }
 
   public get instance(): PinoInstance {
@@ -120,9 +137,9 @@ class BaseAppLogger {
   /**
    * Spawns a deeper scoped logger, hitting the internal array constructor overload.
    */
-  public child(nextScope: string): AppLoggerInstance {
-    // Using type assertion to bypass the internal 'string[]' signature so that only 'string' is allowed from the top level.
-    return new BaseAppLogger([...this.path, nextScope]) as unknown as AppLoggerInstance;
+  public child(nextScope: string | string[]): AppLoggerInstance {
+    const scopes = Array.isArray(nextScope) ? nextScope : [nextScope];
+    return new BaseAppLogger([...this.path, ...scopes]) as unknown as AppLoggerInstance;
   }
 }
 
@@ -131,31 +148,26 @@ class BaseAppLogger {
 // ==========================================
 
 export interface AppLoggerConstructor {
-  // PUBLIC OVERLOAD: Assumes root module creation from a string
-  new (scope: string): AppLoggerInstance;
+  // PUBLIC OVERLOADS: Accepts either a single string or an array of strings
+  new (scope: string | string[]): AppLoggerInstance;
+
+  get(scope: string | string[]): AppLoggerInstance;
 }
 
 /**
  * The AppLoggerConstructor interface defines the constructor signature for creating new logger instances.
- * It allows for creating a logger with a single string scope, which will be used as the root scope for the logger.
- * To use it properly, the parent process should create a logger instance and then use the `child` method to create deeper scoped loggers.
- * This ensures that the logger hierarchy is maintained and that log messages are properly scoped.
+ * It allows for creating a logger with a single string or an array of strings for deep initial context.
  *
  * Example usage:
  * ```
- * const logger = new AppLogger('root');
- * const childLogger = logger.child('childScope');
+ * const logger = new AppLogger(['root', 'subModule', 'service']);
  * ```
- * This will result in a log looking like this:
- * ```txt
- * [timestamp] LEVEL (BASE_NAME): [root|childScope] message
- * ```
- *
- * This also makes sure the child logger will be garbage collected when it's out of scope \
- * and when the parent logger is garbage collected, preventing memory leaks.
  */
 export const AppLogger = BaseAppLogger as unknown as AppLoggerConstructor;
-export const baseLogger = new AppLogger('discord');
+
+// ==========================================
+// 4. Discord Logger Implementation
+// ==========================================
 
 /**
  * In Discord Logging
@@ -255,7 +267,7 @@ export class DiscordLogger {
       const embed = EmbedBuilder.from(args ?? {})
         .setDescription(msg)
         .setColor(color)
-        .setTimestamp(); // always set timestamp
+        .setTimestamp();
 
       await this.webhook!.send({ embeds: [embed] });
     } catch (error) {

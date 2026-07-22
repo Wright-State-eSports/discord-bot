@@ -1,13 +1,15 @@
 import {
-  SlashCommandBuilder,
-  SlashCommandSubcommandsOnlyBuilder,
-  ChatInputCommandInteraction,
-  AutocompleteInteraction,
-  Collection,
-  Client as BaseClient,
+  type AutocompleteInteraction,
+  type ChatInputCommandInteraction,
+  type Client as BaseClient,
+  type Collection,
+  type SlashCommandBuilder,
+  type SlashCommandSubcommandsOnlyBuilder,
+  type SharedSlashCommand,
+  ClientEvents,
 } from 'discord.js';
 
-import { AppLoggerInstance } from './utils/logger.ts';
+import type { AppLoggerInstance } from './utils/logger.ts';
 
 declare global {
   /**
@@ -21,13 +23,9 @@ declare global {
    * - The optional `autocomplete` method, if provided, must be an asynchronous function that takes an `AutocompleteInteraction` and any additional arguments, returning a Promise<void>.
    */
   interface Command {
-    data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder | SlashCommandOptionsOnlyBuilder;
+    data: SharedSlashCommand;
     execute: (interaction: ChatInputCommandInteraction, ...args: any[]) => Promise<void>;
     autocomplete?: (interaction: AutocompleteInteraction, ...args: any[]) => Promise<void>;
-  }
-
-  interface Client extends BaseClient {
-    commands: Collection<string, Command>;
   }
 
   type SubcommandHandler = (
@@ -35,4 +33,15 @@ declare global {
     logger: AppLoggerInstance,
     ...args: any[]
   ) => Promise<void>;
+
+  interface Client extends BaseClient {
+    commands: Collection<string, Command>;
+  }
+
+  interface EventHandler<K extends keyof ClientEvents> {
+    name: string;
+    event: K;
+    once?: boolean;
+    execute: (...args: ClientEvents[K]) => Promise<void>;
+  }
 }

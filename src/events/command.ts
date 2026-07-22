@@ -1,9 +1,6 @@
-import { MessageFlags, type Interaction } from 'discord.js';
+import { Events, MessageFlags, type Interaction } from 'discord.js';
 
-import { eventsLogger } from '.';
-import { userCombo } from '../utils';
-import { registry, unloaded } from '../utils/commands';
-import { DiscordLogger } from '../utils/logger';
+import { AppLogger, DiscordLogger, userCombo, CommandRegistry } from '../utils';
 
 /**
  * Handles command interactions.
@@ -13,39 +10,43 @@ import { DiscordLogger } from '../utils/logger';
  *
  * @param interaction Discord Interaction
  */
-export default async function commandHandler(interaction: Interaction): Promise<void> {
-  const logger = eventsLogger.child('command');
-  if (!interaction.isChatInputCommand()) return;
+export default {
+  name: 'command',
+  event: Events.InteractionCreate,
+  execute: async (interaction: Interaction): Promise<void> => {
+    const logger = AppLogger.get('discord').child(['event', 'command']);
+    if (!interaction.isChatInputCommand()) return;
 
-  try {
-    const command = registry.get(interaction.commandName);
-    if (!command) {
-      if (unloaded.has(interaction.commandName)) {
+    try {
+      const command = CommandRegistry.get(interaction.commandName);
+      if (!command) {
+        if (CommandRegistry.unloaded.has(interaction.commandName)) {
+          await DiscordLogger.embed(
+            logger.warn,
+            `${userCombo(interaction)} attempted to execute an unloaded command: ${interaction.commandName}`,
+          );
+
+          logger.warn(`Command ${interaction.commandName} is unloaded`);
+          await interaction.reply({ content: 'Command is unloaded', flags: MessageFlags.Ephemeral });
+          return;
+        }
+
         await DiscordLogger.embed(
           logger.warn,
-          `${userCombo(interaction)} attempted to execute an unloaded command: ${interaction.commandName}`,
+          `${userCombo(interaction)} attempted to execute a command that does not exist: ${interaction.commandName}`,
         );
-
-        logger.warn(`Command ${interaction.commandName} is unloaded`);
-        await interaction.reply({ content: 'Command is unloaded', flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: 'Command not found', flags: MessageFlags.Ephemeral });
         return;
       }
 
+      logger.debug(`${userCombo(interaction)} executing command '${interaction.commandName}'`);
+      await command.execute(interaction);
+    } catch (error) {
       await DiscordLogger.embed(
-        logger.warn,
-        `${userCombo(interaction)} attempted to execute a command that does not exist: ${interaction.commandName}`,
+        logger.error,
+        `${userCombo(interaction)} attempted to execute command '${interaction.commandName}' with an error`,
+        { error },
       );
-      await interaction.reply({ content: 'Command not found', flags: MessageFlags.Ephemeral });
-      return;
     }
-
-    logger.debug(`${userCombo(interaction)} executing command '${interaction.commandName}'`);
-    await command.execute(interaction);
-  } catch (error) {
-    await DiscordLogger.embed(
-      logger.error,
-      `${userCombo(interaction)} attempted to execute command '${interaction.commandName}' with an error`,
-      { error },
-    );
-  }
-}
+  },
+} satisfies EventHandler<Events.InteractionCreate>;

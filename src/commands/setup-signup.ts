@@ -13,7 +13,7 @@ import {
   type AnyComponentBuilder,
 } from 'discord.js';
 
-import { baseLogger } from '../utils/logger';
+import { AppLogger } from '../utils';
 
 const separator = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
 const actionRow = (components: AnyComponentBuilder[]) => new ActionRowBuilder().addComponents(components);
@@ -73,7 +73,7 @@ export default {
     .setDescription('Command to set up the sign up buttons in the current channel'),
   async execute(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const logger = baseLogger.child('command | setup-signup');
+    const logger = AppLogger.get('discord').child(['command', 'setup-signup']);
 
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
       logger.warn(`User ${interaction.user.tag} attempted to use the setup-signup command without permission.`);
