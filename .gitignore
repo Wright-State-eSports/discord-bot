@@ -25,5 +25,7 @@ dist-ssr
 !.vscode/
 !.vscode/settings.json
 !.vscode/extensions.json
+*.code-workspace
 
-.env
+.env*
+!.env.sample

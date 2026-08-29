@@ -1,6 +1,9 @@
+import type { ConfigKey } from './config-keys';
 import type { AppLoggerInstance } from './logger';
 
 import { debounce } from './utils';
+
+export * from './config-keys';
 
 interface ListenerNode {
   listeners: Set<ConfigChangeListener>;
@@ -29,36 +32,37 @@ export class Config {
    * Loads the configuration into memory. If the configuration is already loaded, it does nothing.
    */
   static async loadConfig(): Promise<void> {
+    await this._initializeLogger();
     if (this._config) return;
 
     try {
-      const file = Bun.file('config.json');
+      const configFile = process.env.NODE_ENV === 'development' ? 'config.dev.json' : 'config.json';
+      const file = Bun.file(configFile);
       const data = await file.json();
       this._config = data;
     } catch (error) {
-      this.logger.error(error, 'Failed to load config.json');
+      this.logger.error(error, 'Failed to load config file');
     }
   }
 
   /**
-   * Retrieves a value from the configuration using a dot-separated key path.
+   * Retrieves a value from the configuration using a dot-separated key path or ConfigKeys path.
    * If the key does not exist, it returns undefined.
    *
-   * @param key - The dot-separated key path (e.g., "database.host").
+   * @param key - The dot-separated key path or ConfigKeys path (e.g. ConfigKeys.Webhooks.Logs.Id).
    * @returns The value associated with the key, or undefined if not found.
    */
-  static async get(key: string): Promise<any> {
+  static async get<T = any>(key: ConfigKey): Promise<T | undefined> {
     await this.loadConfig();
     if (!this._config) {
       this.logger.error('Config not loaded after loadConfig call. This should never happen.');
       return undefined;
     }
 
-    // Split the path (e.g., 'server.port' -> ['server', 'port'])
     const paths = key.split('.');
-
-    // Use reduce to walk down the object tree
-    return paths.reduce((acc, key) => (acc && typeof acc === 'object' ? acc[key] : undefined), this._config);
+    // Walk the nested object one segment at a time; short-circuit to undefined
+    // if any intermediate key is missing or not an object.
+    return paths.reduce((acc, key) => (acc && typeof acc === 'object' ? acc[key] : undefined), this._config) as T;
   }
 
   /**
@@ -66,11 +70,11 @@ export class Config {
    * If the key does not exist, it will be created.
    * After setting the value, it triggers any registered change listeners for that key.
    *
-   * @param key - The dot-separated key path (e.g., "database.host").
+   * @param key - The dot-separated key path or ConfigKeys path.
    * @param value - The value to set for the specified key.
    * @returns A promise that resolves to true if the value was set successfully, or false if there was an error.
    */
-  static async set(key: string, value: any): Promise<boolean> {
+  static async set(key: ConfigKey, value: any): Promise<boolean> {
     await this.loadConfig();
     if (!this._config) {
       this.logger.error('Config not loaded after loadConfig call. This should never happen.');
@@ -80,6 +84,7 @@ export class Config {
     const paths = key.split('.');
     let current = this._config;
 
+    // Walk to the parent object, creating intermediate nodes if they don't exist.
     for (let i = 0; i < paths.length - 1; i++) {
       const part = paths[i];
       current[part] = current[part] || {};
@@ -107,7 +112,7 @@ export class Config {
    * @param key - Optional. If provided, the listener will only be called for changes to this specific key or its children.
    * @returns a disposer that can be called to remove the listener.
    */
-  static async addChangeListener(listener: ConfigChangeListener, key?: string): Promise<(() => void) | boolean> {
+  static async addChangeListener(listener: ConfigChangeListener, key?: ConfigKey): Promise<(() => void) | boolean> {
     await this.loadConfig();
     if (!this._config) {
       this.logger.error('Config not loaded after loadConfig call. This should never happen.');
@@ -178,6 +183,8 @@ export class Config {
     if (!this._config) return;
 
     try {
+      // Always persist to config.json regardless of NODE_ENV — dev changes
+      // are intentional writes and should survive restarts.
       const file = Bun.file('config.json');
       await file.write(JSON.stringify(this._config, null, 2));
     } catch (error) {
