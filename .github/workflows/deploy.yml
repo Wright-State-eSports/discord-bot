@@ -1,10 +1,6 @@
 name: Deploy Discord Bot
 
 on:
-  push:
-    branches:
-      - main
-      - typescript
   workflow_dispatch:
     inputs:
       mode:
@@ -27,13 +23,7 @@ jobs:
       - name: Determine execution mode
         id: env
         run: |
-          if [ -n "${{ inputs.mode }}" ]; then
-            RUN_SCRIPT="${{ inputs.mode }}"
-          elif [ "${{ github.ref_name }}" = "main" ]; then
-            RUN_SCRIPT="start"
-          else
-            RUN_SCRIPT="dev"
-          fi
+          RUN_SCRIPT="${{ inputs.mode }}"
 
           if [ "$RUN_SCRIPT" = "start" ]; then
             APP_NAME="esports-bot"
@@ -43,7 +33,7 @@ jobs:
 
           echo "run_script=$RUN_SCRIPT" >> "$GITHUB_OUTPUT"
           echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
-          echo "Deploying on branch '${{ github.ref_name }}' with mode '$RUN_SCRIPT' (PM2 process: '$APP_NAME')"
+          echo "Deploying with mode '$RUN_SCRIPT' (PM2 process: '$APP_NAME')"
 
       - name: Inject Private Configuration
         run: |
