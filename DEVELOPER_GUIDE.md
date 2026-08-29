@@ -68,7 +68,30 @@ Create `config.dev.json` at the project root:
 }
 ```
 
-All keys here are **required**. If any are missing, the feature that depends on them will degrade gracefully or skip.
+#### Configuration Key Reference
+
+##### `webhooks`
+
+| Key                                        | Path                                                | Type     | Description                                                                   |
+| :----------------------------------------- | :-------------------------------------------------- | :------- | :---------------------------------------------------------------------------- |
+| `logs.id`                                  | `webhooks.logs.id`                                  | `string` | Webhook ID for in-Discord logging channel                                     |
+| `new-register.id`                          | `webhooks.new-register.id`                          | `string` | Webhook ID for incoming registration webhook messages                         |
+| `new-register.channel-id`                  | `webhooks.new-register.channel-id`                  | `string` | Channel ID where the registration webhook posts                               |
+| `new-register.startup-sweep-message-limit` | `webhooks.new-register.startup-sweep-message-limit` | `number` | Max messages to sweep on startup for unprocessed registrations (default `25`) |
+
+##### `roles`
+
+| Key             | Path                  | Type     | Description                                 |
+| :-------------- | :-------------------- | :------- | :------------------------------------------ |
+| `raider`        | `roles.raider`        | `string` | Role ID for full members (Raiders)          |
+| `guest`         | `roles.guest`         | `string` | Role ID for guests                          |
+| `not-signed-up` | `roles.not-signed-up` | `string` | Role ID for users who haven't signed up yet |
+
+##### `channels`
+
+| Key    | Path            | Type     | Description                                                                     |
+| :----- | :-------------- | :------- | :------------------------------------------------------------------------------ |
+| `help` | `channels.help` | `string` | Channel ID where help/approval notifications (`<@user>, you are set!`) are sent |
 
 ### 4. Run
 
