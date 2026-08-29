@@ -1,0 +1,27 @@
+name: Deploy Discord Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inject Private Configuration
+        run: |
+          cp /home/runner/bot-secrets/.env .env
+          cp /home/runner/bot-secrets/config.json config.dev.json
+
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install --ignore-scripts
+
+      - name: Start or restart bot with PM2
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          pm2 restart esports-bot || pm2 start "bun run dev" --name esports-bot
