@@ -360,7 +360,23 @@ await DiscordLogger.log(logger.info, 'Bot restarted successfully');
    } satisfies EventHandler<Events.GuildMemberAdd>;
    ```
 
-2. The `EventRegistry` automatically discovers and loads all `.ts` files in `src/events/` on startup. No manual registration needed.
+---
+
+## Adding a Button Handler
+
+1. Create `src/events/button/<button-action>.ts`:
+
+   ```typescript
+   import type { ButtonInteraction } from 'discord.js';
+
+   export async function handleMyButton(interaction: ButtonInteraction): Promise<void> {
+     // handle button action
+   }
+   ```
+
+2. Add the `customId` switch case and export to [`src/events/button/index.ts`](src/events/button/index.ts).
+
+The `EventRegistry` automatically discovers and loads both flat files (`src/events/<name>.ts`) and directory modules (`src/events/<name>/index.ts`) on startup. No manual registration needed.
 
 ---
 

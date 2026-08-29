@@ -29,14 +29,21 @@ class EventRegistryClass extends Registry<EventHandler<keyof ClientEvents>> {
 
   public async load(name: string): Promise<EventHandler<keyof ClientEvents> | boolean> {
     try {
-      const fileName = `${name}.ts`;
       this._logger.info(`Loading event: ${name}`);
 
-      const filePath = join(eventsFolder, `${fileName}`);
-      const pathName = filePath.split('/').slice(-2).join('/');
+      let filePath = join(eventsFolder, `${name}.ts`);
+      let exists = await Bun.file(filePath).exists();
 
-      const file = Bun.file(filePath);
-      const exists = await file.exists();
+      if (!exists) {
+        // Fallback: check for directory index (src/events/<name>/index.ts)
+        const dirIndexPath = join(eventsFolder, name, 'index.ts');
+        if (await Bun.file(dirIndexPath).exists()) {
+          filePath = dirIndexPath;
+          exists = true;
+        }
+      }
+
+      const pathName = filePath.split('/').slice(-2).join('/');
 
       if (!exists) {
         this._logger.error(
@@ -104,12 +111,18 @@ class EventRegistryClass extends Registry<EventHandler<keyof ClientEvents>> {
 
   public async loadAll(): Promise<void> {
     try {
-      const files = await readdir(eventsFolder);
-      const eventFiles = files.filter((file) => file.endsWith('.ts'));
+      const entries = await readdir(eventsFolder, { withFileTypes: true });
 
-      for (const file of eventFiles) {
-        const name = file.slice(0, -3); // Remove the .ts extension
-        await this.load(name);
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith('.ts')) {
+          const name = entry.name.slice(0, -3); // Remove .ts extension
+          await this.load(name);
+        } else if (entry.isDirectory()) {
+          const indexPath = join(eventsFolder, entry.name, 'index.ts');
+          if (await Bun.file(indexPath).exists()) {
+            await this.load(entry.name);
+          }
+        }
       }
     } catch (error) {
       this._logger.error(error, 'Error occurred while loading all events:');

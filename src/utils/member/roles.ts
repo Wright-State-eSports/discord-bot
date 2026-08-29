@@ -3,7 +3,8 @@ import type { GuildMember } from 'discord.js';
 import { Config, ConfigKeys } from '../config';
 
 /**
- * Retrieves configured role IDs for registration roles with default fallbacks.
+ * Retrieves configured role IDs for registration roles.
+ * Throws an error if any role ID is not configured in the bot settings.
  */
 export async function getRegistrationRoleIds(): Promise<{
   raider: string;
@@ -16,18 +17,21 @@ export async function getRegistrationRoleIds(): Promise<{
     Config.get(ConfigKeys.Roles.NotSignedUp),
   ]);
 
-  return {
-    raider: raider || '487305397204418560',
-    guest: guest || '678974090018553867',
-    notSignedUp: notSignedUp || '512838063152562194',
-  };
+  if (!raider || !guest || !notSignedUp) {
+    throw new Error(
+      `Missing required role config: raider=${raider || 'missing'}, guest=${guest || 'missing'}, not-signed-up=${notSignedUp || 'missing'}`,
+    );
+  }
+
+  return { raider, guest, notSignedUp };
 }
 
 /**
  * Checks if a member has the Raider (full member) role.
  */
 export async function hasRaiderRole(member: GuildMember): Promise<boolean> {
-  const roleId = (await Config.get(ConfigKeys.Roles.Raider)) || '487305397204418560';
+  const roleId = await Config.get(ConfigKeys.Roles.Raider);
+  if (!roleId) return false;
   return member.roles.cache.has(roleId);
 }
 
@@ -35,7 +39,8 @@ export async function hasRaiderRole(member: GuildMember): Promise<boolean> {
  * Checks if a member has the Guest role.
  */
 export async function hasGuestRole(member: GuildMember): Promise<boolean> {
-  const roleId = (await Config.get(ConfigKeys.Roles.Guest)) || '678974090018553867';
+  const roleId = await Config.get(ConfigKeys.Roles.Guest);
+  if (!roleId) return false;
   return member.roles.cache.has(roleId);
 }
 
@@ -43,7 +48,8 @@ export async function hasGuestRole(member: GuildMember): Promise<boolean> {
  * Checks if a member has the Not-Signed-Up role.
  */
 export async function hasNotSignedUpRole(member: GuildMember): Promise<boolean> {
-  const roleId = (await Config.get(ConfigKeys.Roles.NotSignedUp)) || '512838063152562194';
+  const roleId = await Config.get(ConfigKeys.Roles.NotSignedUp);
+  if (!roleId) return false;
   return member.roles.cache.has(roleId);
 }
 

@@ -40,6 +40,10 @@ export default {
       }
 
       logger.debug(`${userCombo(interaction)} executing command '${interaction.commandName}'`);
+      await DiscordLogger.log(
+        logger.info,
+        `${userCombo(interaction)} used /${interaction.commandName} in ${interaction.channel ? `<#${interaction.channel.id}>` : 'DM'}`,
+      );
       await (command as ChatInputCommand).execute(interaction);
     } catch (error) {
       await DiscordLogger.embed(

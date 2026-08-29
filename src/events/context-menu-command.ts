@@ -40,6 +40,10 @@ export default {
       }
 
       logger.debug(`${userCombo(interaction)} executing context command '${interaction.commandName}'`);
+      await DiscordLogger.log(
+        logger.info,
+        `${userCombo(interaction)} used context menu "${interaction.commandName}" in ${interaction.channel ? `<#${interaction.channel.id}>` : 'DM'}`,
+      );
       if (interaction.isMessageContextMenuCommand()) {
         await (command as MessageContextMenuCommand).execute(interaction);
       } else if (interaction.isUserContextMenuCommand()) {

@@ -7,7 +7,9 @@ export function extractUserIdFromCard(source: ButtonInteraction | Message | Embe
   if (!source) return null;
 
   let embed: Embed | undefined;
-  if ('embeds' in source) {
+  if ('message' in source && source.message) {
+    embed = source.message.embeds[0];
+  } else if ('embeds' in source) {
     embed = source.embeds[0];
   } else if ('fields' in source) {
     embed = source as Embed;
@@ -15,15 +17,23 @@ export function extractUserIdFromCard(source: ButtonInteraction | Message | Embe
 
   if (!embed) return null;
 
-  const mentionField = embed.fields.find((f) => f.name === 'Discord @');
+  const mentionField = embed.fields?.find((f) => f.name === 'Discord @');
   if (mentionField) {
     const match = mentionField.value.match(/<@!?(\d+)>/);
     if (match) return match[1];
   }
 
   // Fallback: check any field with mention
-  for (const field of embed.fields) {
-    const match = field.value.match(/<@!?(\d+)>/);
+  if (embed.fields) {
+    for (const field of embed.fields) {
+      const match = field.value.match(/<@!?(\d+)>/);
+      if (match) return match[1];
+    }
+  }
+
+  // Fallback: check description
+  if (embed.description) {
+    const match = embed.description.match(/<@!?(\d+)>/);
     if (match) return match[1];
   }
 

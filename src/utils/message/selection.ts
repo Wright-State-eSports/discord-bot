@@ -35,6 +35,10 @@ export class MessageSelectionManager {
     return entry;
   }
 
+  public has(userId: string): boolean {
+    return this.get(userId) !== null;
+  }
+
   public clear(userId: string): void {
     this.cache.delete(userId);
   }
