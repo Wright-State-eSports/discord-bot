@@ -2,7 +2,8 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   staged: {
-    '*': ['vp fmt', 'vp lint --fix'],
+    '*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}': ['vp fmt', 'vp lint --fix'],
+    '*.{json,yaml,yml,md}': 'vp fmt',
   },
   fmt: {
     singleQuote: true,

@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
-          bun install
+          bun install --ignore-scripts
 
       - name: Start or restart bot with PM2
         run: |
