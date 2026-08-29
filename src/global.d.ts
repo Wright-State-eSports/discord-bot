@@ -1,10 +1,15 @@
 import {
   type AutocompleteInteraction,
   type ChatInputCommandInteraction,
+  type ContextMenuCommandInteraction,
+  type MessageContextMenuCommandInteraction,
+  type UserContextMenuCommandInteraction,
   type Client as BaseClient,
   type Collection,
   type SlashCommandBuilder,
   type SlashCommandSubcommandsOnlyBuilder,
+  type SlashCommandOptionsOnlyBuilder,
+  type ContextMenuCommandBuilder,
   type SharedSlashCommand,
   ClientEvents,
 } from 'discord.js';
@@ -22,11 +27,29 @@ declare global {
    * - The `execute` method must be an asynchronous function that takes a `ChatInputCommandInteraction` and any additional arguments, returning a Promise<void>.
    * - The optional `autocomplete` method, if provided, must be an asynchronous function that takes an `AutocompleteInteraction` and any additional arguments, returning a Promise<void>.
    */
-  interface Command {
-    data: SharedSlashCommand;
+  interface ChatInputCommand {
+    data:
+      | SharedSlashCommand
+      | SlashCommandBuilder
+      | SlashCommandSubcommandsOnlyBuilder
+      | SlashCommandOptionsOnlyBuilder;
     execute: (interaction: ChatInputCommandInteraction, ...args: any[]) => Promise<void>;
     autocomplete?: (interaction: AutocompleteInteraction, ...args: any[]) => Promise<void>;
   }
+
+  interface MessageContextMenuCommand {
+    data: ContextMenuCommandBuilder;
+    execute: (interaction: MessageContextMenuCommandInteraction, ...args: any[]) => Promise<void>;
+  }
+
+  interface UserContextMenuCommand {
+    data: ContextMenuCommandBuilder;
+    execute: (interaction: UserContextMenuCommandInteraction, ...args: any[]) => Promise<void>;
+  }
+
+  type ContextMenuCommand = MessageContextMenuCommand | UserContextMenuCommand;
+
+  type Command = ChatInputCommand | ContextMenuCommand;
 
   type SubcommandHandler = (
     interaction: ChatInputCommandInteraction,

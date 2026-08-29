@@ -2,6 +2,9 @@ import { Events, type Interaction } from 'discord.js';
 
 import { CommandRegistry, AppLogger } from '../utils';
 
+/**
+ * Handles autocomplete interactions by delegating to the matching command's autocomplete handler.
+ */
 export default {
   name: 'autocomplete',
   event: Events.InteractionCreate,
@@ -10,7 +13,7 @@ export default {
     if (!interaction.isAutocomplete()) return;
 
     try {
-      const command = CommandRegistry.get(interaction.commandName);
+      const command = CommandRegistry.get(interaction.commandName) as ChatInputCommand | undefined;
       if (!command) {
         logger.warn(`No command found for '${interaction.commandName}'`);
         await interaction.respond([]);

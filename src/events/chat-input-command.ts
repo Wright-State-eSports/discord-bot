@@ -3,18 +3,18 @@ import { Events, MessageFlags, type Interaction } from 'discord.js';
 import { AppLogger, DiscordLogger, userCombo, CommandRegistry } from '../utils';
 
 /**
- * Handles command interactions.
+ * Handles chat input (slash) command interactions.
  *
- * This function is called whenever a command interaction is created.
+ * This function is called whenever a chat input command interaction is created.
  * It checks if the command exists in the registry and executes it if it does.
  *
  * @param interaction Discord Interaction
  */
 export default {
-  name: 'command',
+  name: 'chat-input-command',
   event: Events.InteractionCreate,
   execute: async (interaction: Interaction): Promise<void> => {
-    const logger = AppLogger.get('discord').child(['event', 'command']);
+    const logger = AppLogger.get('discord').child(['event', 'chat-input-command']);
     if (!interaction.isChatInputCommand()) return;
 
     try {
@@ -40,7 +40,7 @@ export default {
       }
 
       logger.debug(`${userCombo(interaction)} executing command '${interaction.commandName}'`);
-      await command.execute(interaction);
+      await (command as ChatInputCommand).execute(interaction);
     } catch (error) {
       await DiscordLogger.embed(
         logger.error,

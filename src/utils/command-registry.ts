@@ -1,3 +1,5 @@
+import { ApplicationCommandType, ContextMenuCommandBuilder } from 'discord.js';
+import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -5,6 +7,7 @@ import { AppLogger } from './logger';
 import Registry from './registry';
 
 export const commandsFolder = join(__dirname, process.env.COMMANDS_FOLDER || '../commands');
+export const contextMenusFolder = join(__dirname, process.env.CONTEXT_MENUS_FOLDER || '../context-menus');
 
 class CommandRegistryClass extends Registry<Command> {
   protected _logger = AppLogger.get('discord').child('CommandRegistry');
@@ -19,35 +22,40 @@ class CommandRegistryClass extends Registry<Command> {
     this._initialized = true;
   }
 
-  public async load(name: string): Promise<Command | boolean> {
+  public async load(name: string, folder: string = commandsFolder): Promise<Command | boolean> {
     try {
       const fileName = `${name}.ts`;
-      this._logger.info(`Loading command: ${name}`);
+      this._logger.info(`Loading command: ${name} from ${folder}`);
 
-      const filePath = join(commandsFolder, `${fileName}`);
-      const pathName = filePath.split('/').slice(-2).join('/');
-
-      const file = Bun.file(filePath);
-      const exists = await file.exists();
-
-      if (!exists) {
-        this._logger.error(
-          {
-            expected: name,
-            file: pathName,
-          },
-          `Command file not found for '${name}'. Attempted to load from '${pathName}'. Skipping...`,
-        );
-        this._seen.delete(name);
-        return false;
+      let filePath = join(folder, fileName);
+      if (!existsSync(filePath)) {
+        // If not found in the given folder, try the other folder
+        const fallbackFolder = folder === commandsFolder ? contextMenusFolder : commandsFolder;
+        const fallbackPath = join(fallbackFolder, fileName);
+        if (existsSync(fallbackPath)) {
+          filePath = fallbackPath;
+          folder = fallbackFolder;
+        } else {
+          const pathName = filePath.split('/').slice(-2).join('/');
+          this._logger.error(
+            {
+              expected: name,
+              file: pathName,
+            },
+            `Command file not found for '${name}'. Attempted to load from '${pathName}'. Skipping...`,
+          );
+          this._seen.delete(name);
+          return false;
+        }
       }
 
-      this._logger.trace('Deleting require cache for command file');
-      delete require.cache[require.resolve(filePath)];
+      const pathName = filePath.split('/').slice(-2).join('/');
 
       let commandModule = null;
       try {
-        commandModule = await require(filePath);
+        // The `?update=` query string busts Bun's module cache so that
+        // reload/load always pulls the latest version of the file from disk.
+        commandModule = await import(`${filePath}?update=${Date.now()}`);
       } catch (_) {
         this._logger.error(
           _,
@@ -57,7 +65,7 @@ class CommandRegistryClass extends Registry<Command> {
         return false;
       }
 
-      const command = commandModule.default;
+      const command: Command = commandModule.default;
 
       if (!command) {
         this._logger.error(`No default export found in '${name}'. Skipping...`);
@@ -71,17 +79,31 @@ class CommandRegistryClass extends Registry<Command> {
         return false;
       }
 
-      if (command.data.name !== name) {
-        this._logger.error(
-          {
-            expected: name,
-            actual: command.data.name,
-            file: pathName,
-          },
-          `Command name mismatch for '${name}'. Expected '${name}', but got '${command.data.name}'. Skipping...`,
-        );
-        this._seen.delete(name);
-        return false;
+      const isContextMenu =
+        command.data instanceof ContextMenuCommandBuilder ||
+        ('type' in command.data &&
+          (command.data.type === ApplicationCommandType.Message || command.data.type === ApplicationCommandType.User));
+
+      if (isContextMenu) {
+        if (!command.data.name) {
+          this._logger.error(`Context menu command at '${pathName}' is missing a valid name. Skipping...`);
+          this._seen.delete(name);
+          return false;
+        }
+      } else {
+        // Enforce kebab-case filename matching for slash commands
+        if (command.data.name !== name) {
+          this._logger.error(
+            {
+              expected: name,
+              actual: command.data.name,
+              file: pathName,
+            },
+            `Command name mismatch for '${name}'. Expected '${name}', but got '${command.data.name}'. Skipping...`,
+          );
+          this._seen.delete(name);
+          return false;
+        }
       }
 
       this.set(command.data.name, command);
@@ -122,20 +144,52 @@ class CommandRegistryClass extends Registry<Command> {
   public async loadAll(): Promise<Registry<Command> | void> {
     try {
       this._logger.info('Loading all commands');
-      const files = (await readdir(commandsFolder))
-        .filter((file) => file.endsWith('.ts'))
-        .map((file) => file.replace('.ts', ''));
 
-      for (const fileName of files) {
-        await this.load(fileName);
+      if (existsSync(commandsFolder)) {
+        const files = (await readdir(commandsFolder))
+          .filter((file) => file.endsWith('.ts'))
+          .map((file) => file.replace('.ts', ''));
+
+        for (const fileName of files) {
+          await this.load(fileName, commandsFolder);
+        }
       }
 
-      this._logger.info('All commands loaded!');
+      if (existsSync(contextMenusFolder)) {
+        const contextFiles = (await readdir(contextMenusFolder))
+          .filter((file) => file.endsWith('.ts'))
+          .map((file) => file.replace('.ts', ''));
+
+        for (const fileName of contextFiles) {
+          await this.load(fileName, contextMenusFolder);
+        }
+      }
+
+      this._logger.info(
+        `All commands loaded! (${this.slashCommands.size} slash, ${this.contextMenuCommands.size} context menu)`,
+      );
       return this;
     } catch (error) {
       this._logger.error(error, 'Error occurred while loading commands:');
       throw error;
     }
+  }
+
+  public get slashCommands() {
+    return this.filter(
+      (cmd) =>
+        !(cmd.data instanceof ContextMenuCommandBuilder) &&
+        (!('type' in cmd.data) || cmd.data.type === ApplicationCommandType.ChatInput),
+    );
+  }
+
+  public get contextMenuCommands() {
+    return this.filter(
+      (cmd) =>
+        cmd.data instanceof ContextMenuCommandBuilder ||
+        ('type' in cmd.data &&
+          (cmd.data.type === ApplicationCommandType.Message || cmd.data.type === ApplicationCommandType.User)),
+    );
   }
 }
 

@@ -21,7 +21,12 @@ export async function registerCommands() {
       await CommandRegistry.loadAll();
     } else logger.info('Command registry initialized, skipping command loading');
 
-    logger.info(`Registering ${CommandRegistry.size} slash (/) commands`);
+    const slashCount = CommandRegistry.slashCommands.size;
+    const contextCount = CommandRegistry.contextMenuCommands.size;
+
+    logger.info(
+      `Registering ${CommandRegistry.size} application commands (${slashCount} slash, ${contextCount} context menu)`,
+    );
     logger.info('Converting objects to JSON');
     const serialized: object[] = CommandRegistry.map((command) => command.data.toJSON());
 
@@ -31,7 +36,9 @@ export async function registerCommands() {
       body: serialized,
     })) as unknown as object[];
 
-    logger.info(`Successfully registered ${data.length} slash (/) commands`);
+    logger.info(
+      `Successfully registered ${data.length} application commands (${slashCount} slash, ${contextCount} context menu)`,
+    );
   } catch (err) {
     logger.error(err, 'Error occurred while registering commands:');
   }

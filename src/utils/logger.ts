@@ -1,7 +1,15 @@
-import { DiscordAPIError, EmbedBuilder, WebhookClient, type APIEmbed, type HexColorString } from 'discord.js';
+import {
+  DiscordAPIError,
+  EmbedBuilder,
+  MessageFlags,
+  WebhookClient,
+  type APIEmbed,
+  type HexColorString,
+  type WebhookMessageCreateOptions,
+} from 'discord.js';
 import pino, { type Logger } from 'pino';
 
-import { Config } from './config';
+import { Config, ConfigKeys } from './config';
 
 // ==========================================
 // 1. Base Logger Setup
@@ -90,7 +98,10 @@ class BaseAppLogger {
       breadcrumbs: this.path.slice(1).join('|'),
     });
 
-    // Return the Proxy. No type assertion needed here at runtime.
+    // Proxy that merges BaseAppLogger's own methods with the pino instance.
+    // Property lookups first check BaseAppLogger (child, path, instance, etc.);
+    // anything not found there falls through to the underlying pino logger so
+    // callers can use logger.info / logger.error / etc. directly.
     const proxyInstance = new Proxy(this, {
       get(target, prop, receiver) {
         if (prop in target) {
@@ -102,6 +113,9 @@ class BaseAppLogger {
         if (typeof value === 'function') {
           const bound = value.bind(target.pinoInstance);
 
+          // Attach a numeric `level` property to each log function (info, warn, error…)
+          // so DiscordLogger.embed() can read the severity from the function reference
+          // itself (e.g. `logger.warn.level === 40`) without needing a separate arg.
           if (typeof prop === 'string' && prop in target.pinoInstance.levels.values) {
             const tagged = bound as TaggedLogFn;
             Object.defineProperty(tagged, 'level', {
@@ -178,6 +192,19 @@ export type DiscordLoggerFn = (
   ...args: Parameters<pino.LogFn>
 ) => Promise<void>;
 
+export interface DiscordLogEmbedArgs {
+  error?: unknown;
+  options?: APIEmbed;
+  /** Whether to suppress Discord notifications. Defaults to `true`. */
+  quiet?: boolean;
+}
+
+export interface DiscordLogMessageArgs {
+  error?: unknown;
+  /** Whether to suppress Discord notifications. Defaults to `true`. */
+  quiet?: boolean;
+}
+
 /**
  * Class that handles the in discord logging.
  */
@@ -189,8 +216,15 @@ export class DiscordLogger {
     60: '#b91c1c', // Fatal
   };
 
+  private static readonly LEVEL_NAME_MAP: Record<number, string> = {
+    30: 'INFO',
+    40: 'WARN',
+    50: 'ERROR',
+    60: 'FATAL',
+  };
+
   private static webhook: WebhookClient | null = null;
-  private static hookLogger = new AppLogger('discord-logger');
+  private static hookLogger = new AppLogger(['discord', 'webhook-logger']);
 
   /**
    * The entrypoint for initializing the webhook.
@@ -202,8 +236,8 @@ export class DiscordLogger {
       return true;
     }
 
-    const WEBHOOK_ID = await Config.get('webhook.id');
-    const { WEBHOOK_TOKEN } = process.env;
+    const WEBHOOK_ID = await Config.get(ConfigKeys.Webhooks.Logs.Id);
+    const LOGGER_WEBHOOK_TOKEN = process.env.LOGGER_WEBHOOK_TOKEN || process.env.WEBHOOK_TOKEN;
 
     if (!WEBHOOK_ID || !/^\d{17,19}$/.test(WEBHOOK_ID)) {
       this.hookLogger.error(
@@ -212,24 +246,32 @@ export class DiscordLogger {
       return false;
     }
 
-    if (!WEBHOOK_TOKEN) {
-      this.hookLogger.error('Discord webhook token is not set in .env. In Discord logging setup failed.');
+    if (!LOGGER_WEBHOOK_TOKEN) {
+      this.hookLogger.error(
+        'Discord webhook token (LOGGER_WEBHOOK_TOKEN) is not set in .env. In Discord logging setup failed.',
+      );
       return false;
     }
 
     // Initialize the webhook client
     this.webhook = new WebhookClient({
       id: WEBHOOK_ID,
-      token: WEBHOOK_TOKEN,
+      token: LOGGER_WEBHOOK_TOKEN,
     });
 
     // After initializing, we will first test if ID and Token are valid
     // by sending a test message.
     try {
       this.hookLogger.info('Sending test message to Discord webhook...');
-      await this._sendEmbed('The Discord logger has been successfully initialized and is now active.', '#3498DB', {
-        title: 'Discord Logger Initialized',
-      });
+      await this._sendMessage('▬▬▬▬▬▬▬▬▬▬', MessageFlags.SuppressNotifications);
+      await this._sendEmbed(
+        'The Discord logger has been successfully initialized and is now active.',
+        '#3498DB',
+        {
+          title: 'Discord Logger Initialized',
+        },
+        MessageFlags.SuppressNotifications,
+      );
 
       this.hookLogger.info('Test message sent successfully. Discord logger is now active.');
       return true;
@@ -243,13 +285,56 @@ export class DiscordLogger {
     }
   }
 
-  public static async embed(logger: TaggedLogFn, msg: string, args?: { error?: unknown; options?: APIEmbed }) {
-    const { error: err, options } = args ?? {};
+  /**
+   * Sends an embed to the Discord webhook with the specified message and color.
+   * Notifications are suppressed by default; pass `{ quiet: false }` to alert channel members.
+   * @param logger The logger function to use for logging.
+   * @param msg The message to include in the embed.
+   * @param args Optional arguments including error, embed options, and quiet setting.
+   */
+  public static async embed(logger: TaggedLogFn, msg: string, args?: DiscordLogEmbedArgs) {
+    const { error: err, options, quiet = true } = args ?? {};
     const level = logger.level ?? 30;
 
     // Send the log to the logger first.
-    await this._sendToLogger(logger, err, msg);
-    await this._sendEmbed(msg, this.LEVEL_COLOR_MAP[level] ?? '#000000', options);
+    await this._sendToLogger(logger, msg, err);
+    await this._sendEmbed(
+      msg,
+      this.LEVEL_COLOR_MAP[level] ?? '#000000',
+      options,
+      quiet ? MessageFlags.SuppressNotifications : undefined,
+    );
+  }
+
+  /**
+   * Sends a regular message to the Discord webhook with level prefix: [LEVEL] Message.
+   * Notifications are suppressed by default; pass `{ quiet: false }` to alert channel members.
+   */
+  public static async log(logger: TaggedLogFn, msg: string, args?: { quiet?: boolean }) {
+    const { quiet = true } = args ?? {};
+    const level = logger.level ?? 30;
+
+    // Send the log to the logger first.
+    await this._sendToLogger(logger, msg);
+    await this._sendMessage(
+      `[${this.LEVEL_NAME_MAP[level] ?? 'UNKNOWN'}] ${msg}`,
+      quiet ? MessageFlags.SuppressNotifications : undefined,
+    );
+  }
+
+  /**
+   * Sends a regular message to the Discord webhook.
+   * Notifications are suppressed by default; pass `{ quiet: false }` to alert channel members.
+   * @param logger The logger function to use for logging.
+   * @param msg The message to send.
+   * @param args Optional arguments including error and quiet setting.
+   */
+  public static async message(logger: TaggedLogFn, msg: string, args?: DiscordLogMessageArgs) {
+    const { error: err, quiet = true } = args ?? {};
+
+    // Send the log to the logger first.
+    await this._sendToLogger(logger, msg, err);
+    await this._sendMessage(msg, quiet ? MessageFlags.SuppressNotifications : undefined);
   }
 
   /**
@@ -260,6 +345,7 @@ export class DiscordLogger {
     msg: string,
     color: HexColorString,
     args?: Omit<APIEmbed, 'description' | 'color'>,
+    flags: WebhookMessageCreateOptions['flags'] = MessageFlags.SuppressNotifications,
   ): Promise<void> {
     if (await this._notInit('_sendEmbed')) return;
 
@@ -269,7 +355,20 @@ export class DiscordLogger {
         .setColor(color)
         .setTimestamp();
 
-      await this.webhook!.send({ embeds: [embed] });
+      await this.webhook!.send({ embeds: [embed], flags });
+    } catch (error) {
+      this.hookLogger.error(error, 'Failed to send log message to Discord webhook.');
+    }
+  }
+
+  private static async _sendMessage(
+    msg: string,
+    flags: WebhookMessageCreateOptions['flags'] = MessageFlags.SuppressNotifications,
+  ): Promise<void> {
+    if (await this._notInit('_sendMessage')) return;
+
+    try {
+      await this.webhook!.send({ content: msg, flags });
     } catch (error) {
       this.hookLogger.error(error, 'Failed to send log message to Discord webhook.');
     }
@@ -278,7 +377,7 @@ export class DiscordLogger {
   /**
    * Triggers the logger function with the provided message and error.
    */
-  private static async _sendToLogger(logger: TaggedLogFn, err: unknown, msg: string) {
+  private static async _sendToLogger(logger: TaggedLogFn, msg: string, err: unknown = {}): Promise<void> {
     logger(err, msg);
   }
 

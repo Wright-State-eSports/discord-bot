@@ -51,11 +51,9 @@ class EventRegistryClass extends Registry<EventHandler<keyof ClientEvents>> {
       }
 
       this._logger.trace('Deleting require cache for event file');
-      delete require.cache[require.resolve(filePath)];
-
       let eventModule = null;
       try {
-        eventModule = await require(filePath);
+        eventModule = await import(filePath);
       } catch (_) {
         this._logger.error(
           _,

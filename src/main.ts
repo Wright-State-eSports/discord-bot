@@ -49,8 +49,8 @@ await Config.init();
 await DiscordLogger.init();
 
 logger.info('╔══════════════════════════╗');
-logger.info('║  WRIGHT STATE ESPORTS  ║');
-logger.info('║      DISCORD  BOT      ║');
+logger.info('║   WRIGHT STATE ESPORTS   ║');
+logger.info('║       DISCORD  BOT       ║');
 logger.info('╚══════════════════════════╝');
 logger.info('Booting up!');
 const timing = {
@@ -103,19 +103,28 @@ client.once(Events.ClientReady, async (client) => {
   const ready = `Bot ready in ${timing.ready.getTime() - timing.start.getTime()}ms\n`;
   const login = `Logged in in ${timing.login.getTime() - timing.start.getTime()}ms\n`;
 
-  const commandsField = CommandRegistry.map((_, name) => `- ${name}`).join('\n');
+  const slashCommandsField = CommandRegistry.slashCommands.map((_, name) => `/${name}`).join('\n') || 'None';
+  const contextCommandsField = CommandRegistry.contextMenuCommands.map((_, name) => `• ${name}`).join('\n') || 'None';
 
   await DiscordLogger.embed(logger.info, logged + setup + login + ready, {
     options: {
       title: 'Bot Ready',
       color: 0x00ff00,
       fields: [
-        { name: 'Commands Loaded', value: `${CommandRegistry.size}` },
-        { name: 'Commands', value: commandsField },
+        {
+          name: 'Commands Loaded',
+          value: `Total: ${CommandRegistry.size} (${CommandRegistry.slashCommands.size} slash, ${CommandRegistry.contextMenuCommands.size} context menu)`,
+        },
+        { name: 'Slash Commands', value: slashCommandsField, inline: true },
+        { name: 'Context Menu Commands', value: contextCommandsField, inline: true },
       ],
     },
   });
   logger.info(`Logged in as ${client.user.tag}!`);
+
+  // Sweep and enrich any registration webhooks that arrived while the bot was offline
+  const { sweepUnprocessedRegistrations } = await import('./events/new-register');
+  await sweepUnprocessedRegistrations(client);
 });
 
 logger.info('Adding event handlers');
