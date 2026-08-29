@@ -1,7 +1,10 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 
 import { AppLogger, confirmPrompt, DiscordLogger, userCombo } from '../utils';
+
+const SAFE_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+const DEFAULT_PROCESS_NAME = 'esports-bot-dev';
 
 /**
  * Admin-only command to cleanly shut down the bot and delete its PM2 process
@@ -61,7 +64,9 @@ export default {
       },
     );
 
-    const pm2ProcessName = process.env.name || process.env.PM2_PROCESS_NAME || 'esports-bot-dev';
+    // Sanitize and validate process name to prevent command injection
+    const rawProcessName = process.env.name || process.env.PM2_PROCESS_NAME || DEFAULT_PROCESS_NAME;
+    const pm2ProcessName = SAFE_NAME_REGEX.test(rawProcessName) ? rawProcessName : DEFAULT_PROCESS_NAME;
 
     setTimeout(async () => {
       try {
@@ -73,7 +78,9 @@ export default {
 
       logger.info(`Stopping and deleting PM2 process: "${pm2ProcessName}"`);
 
-      exec(`pm2 delete ${pm2ProcessName}`, (error, stdout, stderr) => {
+      // Using execFile without a shell passes arguments as discrete tokens to execve,
+      // eliminating shell interpolation and command injection risks.
+      execFile('pm2', ['delete', pm2ProcessName], (error, stdout, stderr) => {
         if (error) {
           logger.warn(
             { error: error.message, stderr },
@@ -86,7 +93,7 @@ export default {
         process.exit(0);
       });
 
-      // Safety timeout to ensure process terminates even if exec hangs
+      // Safety timeout to ensure process terminates even if PM2 command hangs
       setTimeout(() => {
         process.exit(0);
       }, 3000);
