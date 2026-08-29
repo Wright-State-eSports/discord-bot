@@ -13,8 +13,9 @@ jobs:
 
       - name: Inject Private Configuration
         run: |
-          cp /home/runner/bot-secrets/.env .env
-          cp /home/runner/bot-secrets/config.json config.dev.json
+          # Copy all .env variations (.env, .env.local, .env.production, etc.)
+          cp /home/runner/bot-secrets/.env* ./ 2>/dev/null || true
+          cp /home/runner/bot-secrets/rowdyraider.json rowdyraider.json
 
       - name: Install dependencies
         run: |
