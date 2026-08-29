@@ -1,7 +1,10 @@
-import { ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, GuildMember, MessageFlags, SlashCommandBuilder } from 'discord.js';
 
-import { AppLogger, type AppLoggerInstance } from '../utils/logger';
+import { AppLogger, hasGuestRole, hasRaiderRole, type AppLoggerInstance } from '../utils';
 
+/**
+ * Sends the appropriate sign-up form link based on whether the user is registering as a member or a guest.
+ */
 export default {
   data: new SlashCommandBuilder()
     .setName('signup')
@@ -35,10 +38,26 @@ export default {
         });
     }
   },
-} satisfies Command;
+} satisfies ChatInputCommand;
 
+/** Replies with the member sign-up form link, pre-filled with the user's Discord tag. */
 async function handleMemberSignup(interaction: ChatInputCommandInteraction, logger: AppLoggerInstance) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  if (interaction.inGuild() && interaction.member) {
+    const member =
+      'roles' in interaction.member
+        ? (interaction.member as GuildMember)
+        : await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+
+    if (member && (await hasRaiderRole(member))) {
+      logger.info(`User ${interaction.user.tag} attempted to sign up as a member, but is already a member.`);
+      await interaction.editReply({
+        content: '✅ You are already registered as a member!',
+      });
+      return;
+    }
+  }
 
   const message =
     'Please sign up and join our engage using this link: https://wright.edu/esports\n\n' +
@@ -49,8 +68,35 @@ async function handleMemberSignup(interaction: ChatInputCommandInteraction, logg
   await interaction.editReply({ content: message });
 }
 
+/** Replies with the guest sign-up form link. */
 async function handleGuestSignup(interaction: ChatInputCommandInteraction, logger: AppLoggerInstance) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  if (interaction.inGuild() && interaction.member) {
+    const member =
+      'roles' in interaction.member
+        ? (interaction.member as GuildMember)
+        : await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+
+    if (member) {
+      if (await hasRaiderRole(member)) {
+        logger.info(`User ${interaction.user.tag} attempted to sign up as a guest, but is already a member.`);
+        await interaction.editReply({
+          content: '✅ You are already registered as a member!',
+        });
+        return;
+      }
+
+      if (await hasGuestRole(member)) {
+        logger.info(`User ${interaction.user.tag} attempted to sign up as a guest, but is already a guest.`);
+        await interaction.editReply({
+          content:
+            '✅ You are already registered as a guest! If you would like to join as a full member, use `/signup as:member`.',
+        });
+        return;
+      }
+    }
+  }
 
   const message = 'Please fill out this form for guest sign up: https://forms.gle/jbBbWaeyYU3qBa6F9';
   logger.info(`Sent Guest Signup Message to ${interaction.user.tag}`);

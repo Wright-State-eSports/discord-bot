@@ -2,6 +2,10 @@ import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder, ty
 
 import { AppLogger } from '../utils';
 
+/**
+ * Admin-only command to send a message as the bot to any text channel.
+ * Supports optional channel targeting and file attachments.
+ */
 export default {
   data: new SlashCommandBuilder()
     .setName('say')
@@ -77,4 +81,4 @@ export default {
       });
     }
   },
-} satisfies Command;
+} satisfies ChatInputCommand;

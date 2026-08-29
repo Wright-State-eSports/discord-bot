@@ -4,6 +4,10 @@ import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.
 
 import { CommandRegistry, AppLogger, registerCommands, userCombo } from '../utils';
 
+/**
+ * Admin-only utility command for managing loaded commands at runtime.
+ * Supports listing, loading, unloading, reloading, and pushing commands to the Discord API.
+ */
 export default {
   data: new SlashCommandBuilder()
     .setName('commands')
@@ -106,8 +110,9 @@ export default {
       }
     }
   },
-} satisfies Command;
+} satisfies ChatInputCommand;
 
+/** Unloads then re-imports a command from disk, picking up any code changes. */
 const reload: SubcommandHandler = async (interaction, parentLogger) => {
   const logger = parentLogger.child('reload');
 
@@ -146,6 +151,7 @@ const reload: SubcommandHandler = async (interaction, parentLogger) => {
   }
 };
 
+/** Loads a previously unloaded command back into the registry. */
 const load: SubcommandHandler = async (interaction, parentLogger) => {
   const logger = parentLogger.child('load');
 
@@ -174,6 +180,7 @@ const load: SubcommandHandler = async (interaction, parentLogger) => {
   }
 };
 
+/** Removes a command from the registry so it no longer executes (stays registered with Discord). */
 const unload: SubcommandHandler = async (interaction, parentLogger) => {
   const logger = parentLogger.child('unload');
 
@@ -210,6 +217,7 @@ const unload: SubcommandHandler = async (interaction, parentLogger) => {
   }
 };
 
+/** Pushes the current set of loaded commands to the Discord API (guild commands). */
 const update: SubcommandHandler = async (interaction, parentLogger) => {
   const logger = parentLogger.child('update');
 

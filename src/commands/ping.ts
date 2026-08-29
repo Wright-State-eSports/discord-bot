@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
+/** Replies with a latency embed showing how long it took the bot to receive the interaction. */
 export default {
   data: new SlashCommandBuilder()
     .setName('ping')
@@ -15,4 +16,4 @@ export default {
 
     await interaction.reply({ embeds: [embed] });
   },
-} satisfies Command;
+} satisfies ChatInputCommand;
