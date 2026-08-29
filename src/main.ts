@@ -35,7 +35,7 @@
  * as a centralized location and any functions that will handle
  * the events should be imported from their respective modules.
  */
-import { Client as BaseClient, Events, GatewayIntentBits, Partials } from 'discord.js';
+import { type APIEmbedField, Client as BaseClient, Events, GatewayIntentBits, Partials } from 'discord.js';
 
 import { AppLogger, DiscordLogger, EventRegistry, Config, CommandRegistry } from './utils';
 
@@ -44,6 +44,9 @@ const logger = new AppLogger('discord').child('main');
 
 // Initializing configuration
 await Config.init();
+if (Config.missingKeys.length > 0) {
+  logger.warn(`Startup config warning: Missing ${Config.missingKeys.length} key(s): ${Config.missingKeys.join(', ')}`);
+}
 
 // Initializing In-Discord logging
 await DiscordLogger.init();
@@ -99,25 +102,37 @@ client.once(Events.ClientReady, async (client) => {
   timing.ready = new Date();
 
   const logged = `Logged in as <@${client.user.id}>(${client.user.tag})!\n\n`;
-  const setup = `Setup completed in ${timing.setup}ms\n`;
-  const ready = `Bot ready in ${timing.ready.getTime() - timing.start.getTime()}ms\n`;
-  const login = `Logged in in ${timing.login.getTime() - timing.start.getTime()}ms\n`;
+  const setup = `Setup completed in \`${timing.setup}ms\`\n`;
+  const ready = `Bot ready in \`${timing.ready.getTime() - timing.start.getTime()}ms\`\n`;
+  const login = `Logged in in \`${timing.login.getTime() - timing.start.getTime()}ms\`\n`;
 
-  const slashCommandsField = CommandRegistry.slashCommands.map((_, name) => `/${name}`).join('\n') || 'None';
-  const contextCommandsField = CommandRegistry.contextMenuCommands.map((_, name) => `• ${name}`).join('\n') || 'None';
+  const readyFields: APIEmbedField[] = [
+    {
+      name: 'Commands Loaded',
+      value: `**Total:** \`${CommandRegistry.size}\`\n• Slash Commands: \`${CommandRegistry.slashCommands.size}\`\n• Context Menu Commands: \`${CommandRegistry.contextMenuCommands.size}\``,
+      inline: true,
+    },
+    {
+      name: 'Events Loaded',
+      value: `**Total:** \`${EventRegistry.size}\``,
+      inline: true,
+    },
+  ];
 
-  await DiscordLogger.embed(logger.info, logged + setup + login + ready, {
+  if (Config.missingKeys.length > 0) {
+    readyFields.push({
+      name: '⚠️ Missing Configuration Keys',
+      value: Config.missingKeys.map((k) => `• \`${k}\``).join('\n'),
+      inline: false,
+    });
+  }
+
+  const logFn = Config.missingKeys.length > 0 ? logger.warn : logger.info;
+  await DiscordLogger.embed(logFn, logged + setup + login + ready, {
     options: {
-      title: 'Bot Ready',
-      color: 0x00ff00,
-      fields: [
-        {
-          name: 'Commands Loaded',
-          value: `Total: ${CommandRegistry.size} (${CommandRegistry.slashCommands.size} slash, ${CommandRegistry.contextMenuCommands.size} context menu)`,
-        },
-        { name: 'Slash Commands', value: slashCommandsField, inline: true },
-        { name: 'Context Menu Commands', value: contextCommandsField, inline: true },
-      ],
+      title: Config.missingKeys.length > 0 ? 'Bot Ready (with Configuration Warnings)' : 'Bot Ready',
+      color: Config.missingKeys.length > 0 ? 0xf59e0b : 0x00ff00,
+      fields: readyFields,
     },
   });
   logger.info(`Logged in as ${client.user.tag}!`);

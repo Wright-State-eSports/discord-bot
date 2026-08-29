@@ -1,8 +1,12 @@
 import { Collection } from '@discordjs/collection';
 
-import { type AppLoggerInstance } from './logger';
+import { type AppLoggerInstance } from '../utils/logger';
 
-export abstract class Registry<T> extends Collection<string, T> {
+/**
+ * Abstract base registry class extending Discord.js Collection.
+ * Provides tracking for seen, unloaded, and active items with typed lifecycle methods.
+ */
+export abstract class AbstractRegistry<T> extends Collection<string, T> {
   protected readonly _seen: Set<string> = new Set();
   protected readonly _unloaded: Set<string> = new Set();
   protected abstract readonly _logger: AppLoggerInstance;
@@ -16,9 +20,6 @@ export abstract class Registry<T> extends Collection<string, T> {
   public get initialized(): Readonly<boolean> {
     return this._initialized;
   }
-
-  // ? Seen and Unloaded methods. Seen and Unloaded are readonly outside
-  // ? of the Registry class as they are just states and should not be modified outside.
 
   /**
    * @returns a readonly set of seen keys. This is used to track which keys have been loaded.
@@ -35,4 +36,6 @@ export abstract class Registry<T> extends Collection<string, T> {
   }
 }
 
-export default Registry;
+// Re-export alias Registry for convenience
+export { AbstractRegistry as Registry };
+export default AbstractRegistry;

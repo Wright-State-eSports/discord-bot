@@ -1,9 +1,11 @@
-import type { ConfigKey } from './config-keys';
-import type { AppLoggerInstance } from './logger';
+import type { AppLoggerInstance } from '../logger';
+import type { ConfigKey } from './keys';
 
-import { debounce } from './utils';
+import { debounce } from '../utils';
+import { validateConfig } from './validator';
 
-export * from './config-keys';
+export * from './keys';
+export * from './validator';
 
 interface ListenerNode {
   listeners: Set<ConfigChangeListener>;
@@ -16,16 +18,42 @@ export interface ConfigChangeListener {
 
 /**
  * Manages application configuration with nested path support,
- * hierarchical event bubbling, and automatic persistence.
+ * hierarchical event bubbling, automated validation, and automatic persistence.
  */
 export class Config {
   private static _config: Record<string, any> | null = null;
+  private static _missingKeys: string[] = [];
   private static _root: ListenerNode = { listeners: new Set(), children: new Map() };
   private static logger: AppLoggerInstance;
+
+  /**
+   * Retrieves the list of missing or empty configuration keys detected during initialization/validation.
+   */
+  static get missingKeys(): string[] {
+    return this._missingKeys;
+  }
 
   static async init() {
     await this._initializeLogger();
     await this.loadConfig();
+    this.validate();
+  }
+
+  /**
+   * Validates the loaded configuration against all defined ConfigKeys.
+   * Logs a warning if any required keys are missing or unset.
+   *
+   * @returns An array of missing dot-delimited key paths.
+   */
+  static validate(): string[] {
+    this._missingKeys = validateConfig(this._config);
+    if (this._missingKeys.length > 0) {
+      this.logger.warn(
+        { missingKeys: this._missingKeys },
+        `Configuration warning: ${this._missingKeys.length} required config key(s) are missing or empty: ${this._missingKeys.join(', ')}`,
+      );
+    }
+    return this._missingKeys;
   }
 
   /**
@@ -35,13 +63,13 @@ export class Config {
     await this._initializeLogger();
     if (this._config) return;
 
+    const configFile = process.env.NODE_ENV === 'development' ? 'config.dev.json' : 'config.json';
     try {
-      const configFile = process.env.NODE_ENV === 'development' ? 'config.dev.json' : 'config.json';
       const file = Bun.file(configFile);
       const data = await file.json();
       this._config = data;
     } catch (error) {
-      this.logger.error(error, 'Failed to load config file');
+      this.logger.error(error, `Failed to load config file '${configFile}'`);
     }
   }
 
@@ -97,6 +125,7 @@ export class Config {
 
     this._save();
     await this._triggerChange(key, oldValue, value);
+    this.validate();
     return true;
   }
 
@@ -194,8 +223,8 @@ export class Config {
 
   private static async _initializeLogger() {
     if (!this.logger) {
-      const { AppLogger } = await require('./logger');
-      this.logger = new AppLogger('config');
+      const { AppLogger } = await import('../logger');
+      this.logger = AppLogger.get('config');
     }
   }
 }

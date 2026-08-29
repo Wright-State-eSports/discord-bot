@@ -1,0 +1,23 @@
+name: Test Runner & Run Dev
+
+on:
+  push:
+    branches: ['typescript']
+
+jobs:
+  build-and-test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install
+
+      - name: Start or restart bot with PM2
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          pm2 restart esports-bot || pm2 start "bun run dev" --name esports-bot

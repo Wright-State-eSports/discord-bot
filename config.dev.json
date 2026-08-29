@@ -7,6 +7,9 @@
       "id": "1529994998819455217",
       "channel-id": "1427123486832463975",
       "startup-sweep-message-limit": 25
+    },
+    "message-log": {
+      "name": "Message Logs"
     }
   },
   "roles": {
@@ -15,6 +18,7 @@
     "not-signed-up": "1207551772571213885"
   },
   "channels": {
-    "help": "1395803876116009052"
+    "help": "1395803876116009052",
+    "message-log": "1427123486832463975"
   }
 }

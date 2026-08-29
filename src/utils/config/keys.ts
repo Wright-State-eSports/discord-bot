@@ -43,7 +43,7 @@ export function key(segment: string, children?: Record<string, any>) {
  *
  * ### ⚠️ Validation Rule:
  * Every key declared in `ConfigKeys` is **required**. If any `ConfigKey` is not set or missing
- * in the active configuration file (`config.json` / `config.dev.json`), the configuration is considered **invalid**.
+ * in the active configuration file (`config.json` / `config.dev.json`), the configuration produces a warning on startup.
  *
  * ### Usage Example:
  * ```typescript
@@ -67,6 +67,9 @@ export const ConfigKeys = {
       ChannelId: key('channel-id'),
       SweepLimit: key('startup-sweep-message-limit'),
     }),
+    MessageLog: key('message-log', {
+      Name: key('name'),
+    }),
   }),
 
   // Roles
@@ -79,6 +82,7 @@ export const ConfigKeys = {
   // Channels
   Channels: key('channels', {
     Help: key('help'),
+    MessageLog: key('message-log'),
   }),
 } as const;
 
@@ -93,3 +97,18 @@ type NestedLeafValues<T> = T extends string
  * (e.g. `'roles.raider' | 'webhooks.new-register.channel-id' | ...`).
  */
 export type ConfigKey = NestedLeafValues<typeof ConfigKeys>;
+
+/**
+ * Recursively extracts all dot-notated leaf key strings from a nested object tree.
+ */
+export function getAllLeafKeys(obj: Record<string, any>): string[] {
+  const result: string[] = [];
+  for (const value of Object.values(obj)) {
+    if (typeof value === 'string') {
+      result.push(value);
+    } else if (typeof value === 'object' && value !== null) {
+      result.push(...getAllLeafKeys(value));
+    }
+  }
+  return result;
+}

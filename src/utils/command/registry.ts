@@ -3,13 +3,13 @@ import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { AppLogger } from './logger';
-import Registry from './registry';
+import { AbstractRegistry } from '../../structures';
+import { AppLogger } from '../logger';
 
-export const commandsFolder = join(__dirname, process.env.COMMANDS_FOLDER || '../commands');
-export const contextMenusFolder = join(__dirname, process.env.CONTEXT_MENUS_FOLDER || '../context-menus');
+export const commandsFolder = join(__dirname, process.env.COMMANDS_FOLDER || '../../commands');
+export const contextMenusFolder = join(__dirname, process.env.CONTEXT_MENUS_FOLDER || '../../context-menus');
 
-class CommandRegistryClass extends Registry<Command> {
+class CommandRegistryClass extends AbstractRegistry<Command> {
   protected _logger = AppLogger.get('discord').child('CommandRegistry');
 
   public async initialize(): Promise<void> {
@@ -141,29 +141,27 @@ class CommandRegistryClass extends Registry<Command> {
     }
   }
 
-  public async loadAll(): Promise<Registry<Command> | void> {
+  public async loadAll(): Promise<AbstractRegistry<Command> | void> {
     try {
       this._logger.info('Loading all commands');
 
-      if (existsSync(commandsFolder)) {
-        const files = (await readdir(commandsFolder))
-          .filter((file) => file.endsWith('.ts'))
-          .map((file) => file.replace('.ts', ''));
+      const loadDir = async (dir: string) => {
+        if (!existsSync(dir)) return;
+        const entries = await readdir(dir, { withFileTypes: true });
 
-        for (const fileName of files) {
-          await this.load(fileName, commandsFolder);
+        for (const entry of entries) {
+          const fullPath = join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await loadDir(fullPath);
+          } else if (entry.isFile() && entry.name.endsWith('.ts') && entry.name !== 'index.ts') {
+            const fileName = entry.name.replace('.ts', '');
+            await this.load(fileName, dir);
+          }
         }
-      }
+      };
 
-      if (existsSync(contextMenusFolder)) {
-        const contextFiles = (await readdir(contextMenusFolder))
-          .filter((file) => file.endsWith('.ts'))
-          .map((file) => file.replace('.ts', ''));
-
-        for (const fileName of contextFiles) {
-          await this.load(fileName, contextMenusFolder);
-        }
-      }
+      await loadDir(commandsFolder);
+      await loadDir(contextMenusFolder);
 
       this._logger.info(
         `All commands loaded! (${this.slashCommands.size} slash, ${this.contextMenuCommands.size} context menu)`,
@@ -194,3 +192,4 @@ class CommandRegistryClass extends Registry<Command> {
 }
 
 export const CommandRegistry = new CommandRegistryClass();
+export default CommandRegistry;

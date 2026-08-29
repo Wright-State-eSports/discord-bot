@@ -1,6 +1,6 @@
 import { REST, Routes } from 'discord.js';
 
-import { AppLogger } from './logger';
+import { AppLogger } from '../logger';
 
 const logger = AppLogger.get('discord').child('unregister-commands');
 

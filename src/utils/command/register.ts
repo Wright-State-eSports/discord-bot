@@ -1,7 +1,7 @@
 import { REST, Routes } from 'discord.js';
 
-import { CommandRegistry } from './command-registry';
-import { AppLogger } from './logger';
+import { AppLogger } from '../logger';
+import { CommandRegistry } from './registry';
 
 const logger = AppLogger.get('discord').child('register-commands');
 

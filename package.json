@@ -7,12 +7,17 @@
   "scripts": {
     "dev": "bun exec 'NODE_ENV=development bun src/main.ts'",
     "dev:watch": "bun exec 'NODE_ENV=development bun --watch src/main.ts'",
-    "register": "bun src/utils/register-commands.ts",
-    "unregister-commands": "bun src/utils/unregister-commands.ts",
+    "register": "bun src/utils/command/register.ts",
+    "unregister-commands": "bun src/utils/command/unregister.ts",
     "start": "bun src/main.ts",
     "build": "tsc && vp build",
     "preview": "vp preview",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "check": "vp check"
   },
   "dependencies": {
     "@discordjs/collection": "2.1.1",
