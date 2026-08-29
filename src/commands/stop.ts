@@ -1,14 +1,16 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
+import { exec } from 'node:child_process';
 
-import { AppLogger, DiscordLogger, userCombo } from '../utils';
+import { AppLogger, confirmPrompt, DiscordLogger, userCombo } from '../utils';
 
 /**
- * Admin-only command to cleanly shut down the bot process.
+ * Admin-only command to cleanly shut down the bot and delete its PM2 process
+ * to prevent PM2 from automatically restarting the instance.
  */
 export default {
   data: new SlashCommandBuilder()
     .setName('stop')
-    .setDescription('Safely shuts down the bot (Administrator only).')
+    .setDescription('Safely shuts down the bot and stops PM2 process (Administrator only).')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
@@ -23,12 +25,30 @@ export default {
       return;
     }
 
-    logger.info(`${userCombo(interaction)} initiated bot shutdown via /stop.`);
-
-    await interaction.reply({
-      content: '🛑 Shutting down the bot...',
-      flags: MessageFlags.Ephemeral,
+    const { confirmed, interaction: buttonInteraction } = await confirmPrompt(interaction, {
+      content: '⚠️ **Are you sure you want to stop and shut down the bot instance?**',
+      confirmLabel: 'Yes, Stop Bot',
+      cancelLabel: 'Cancel',
+      ephemeral: true,
     });
+
+    if (!confirmed) {
+      return;
+    }
+
+    logger.info(`${userCombo(interaction)} confirmed bot shutdown via /stop.`);
+
+    if (buttonInteraction) {
+      await buttonInteraction.update({
+        content: '🛑 Shutting down bot instance...',
+        components: [],
+      });
+    } else {
+      await interaction.editReply({
+        content: '🛑 Shutting down bot instance...',
+        components: [],
+      });
+    }
 
     await DiscordLogger.embed(
       logger.warn,
@@ -41,10 +61,35 @@ export default {
       },
     );
 
-    // Destroy client gateway connection and exit process cleanly
+    const pm2ProcessName = process.env.name || process.env.PM2_PROCESS_NAME || 'esports-bot-dev';
+
     setTimeout(async () => {
-      await interaction.client.destroy();
-      process.exit(0);
+      try {
+        await interaction.client.destroy();
+        logger.info('Discord client connection destroyed.');
+      } catch (err) {
+        logger.error(err, 'Error destroying Discord client connection:');
+      }
+
+      logger.info(`Stopping and deleting PM2 process: "${pm2ProcessName}"`);
+
+      exec(`pm2 delete ${pm2ProcessName}`, (error, stdout, stderr) => {
+        if (error) {
+          logger.warn(
+            { error: error.message, stderr },
+            `Could not delete PM2 process "${pm2ProcessName}" (not running under PM2 or permission issue). Exiting process.`,
+          );
+          process.exit(0);
+        }
+
+        logger.info({ stdout }, `PM2 process "${pm2ProcessName}" successfully deleted.`);
+        process.exit(0);
+      });
+
+      // Safety timeout to ensure process terminates even if exec hangs
+      setTimeout(() => {
+        process.exit(0);
+      }, 3000);
     }, 500);
   },
 } satisfies ChatInputCommand;

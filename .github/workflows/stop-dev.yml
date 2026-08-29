@@ -1,0 +1,16 @@
+name: Stop Dev Discord Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stop-dev:
+    runs-on: self-hosted
+
+    steps:
+      - name: Stop and Delete Dev PM2 Process
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          pm2 stop esports-bot-dev || true
+          pm2 delete esports-bot-dev || true
+          pm2 save
