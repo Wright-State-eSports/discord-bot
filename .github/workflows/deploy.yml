@@ -1,7 +1,20 @@
 name: Deploy Discord Bot
 
 on:
+  push:
+    branches:
+      - main
+      - typescript
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution mode (dev vs start)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - start
 
 jobs:
   deploy:
@@ -11,11 +24,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Determine execution mode
+        id: env
+        run: |
+          if [ -n "${{ inputs.mode }}" ]; then
+            RUN_SCRIPT="${{ inputs.mode }}"
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            RUN_SCRIPT="start"
+          else
+            RUN_SCRIPT="dev"
+          fi
+
+          if [ "$RUN_SCRIPT" = "start" ]; then
+            APP_NAME="esports-bot"
+          else
+            APP_NAME="esports-bot-dev"
+          fi
+
+          echo "run_script=$RUN_SCRIPT" >> "$GITHUB_OUTPUT"
+          echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "Deploying on branch '${{ github.ref_name }}' with mode '$RUN_SCRIPT' (PM2 process: '$APP_NAME')"
+
       - name: Inject Private Configuration
         run: |
-          # Copy all .env variations (.env, .env.local, .env.production, etc.)
+          # Copy all .env variations (.env, .env.local, .env.development, .env.production, etc.)
           cp /home/runner/bot-secrets/.env* ./ 2>/dev/null || true
-          cp /home/runner/bot-secrets/rowdyraider.json rowdyraider.json
+          cp /home/runner/bot-secrets/rowdyraider.json rowdyraider.json 2>/dev/null || true
 
       - name: Install dependencies
         run: |
@@ -25,4 +59,7 @@ jobs:
       - name: Start or restart bot with PM2
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
-          pm2 restart esports-bot || pm2 start "bun run dev" --name esports-bot
+          APP_NAME="${{ steps.env.outputs.app_name }}"
+          RUN_SCRIPT="${{ steps.env.outputs.run_script }}"
+
+          pm2 restart "$APP_NAME" || pm2 start "bun run $RUN_SCRIPT" --name "$APP_NAME"
