@@ -1,16 +1,20 @@
-name: Test Runner & Run Dev
+name: Deploy Discord Bot
 
 on:
-  push:
-    branches: ['typescript']
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  deploy:
     runs-on: self-hosted
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Inject Private Configuration
+        run: |
+          cp /home/runner/bot-secrets/.env .env
+          cp /home/runner/bot-secrets/config.json config.dev.json
 
       - name: Install dependencies
         run: |

@@ -42,6 +42,13 @@ import { AppLogger, DiscordLogger, EventRegistry, Config, CommandRegistry } from
 // Setting up logger
 const logger = new AppLogger('discord').child('main');
 
+// Validate Discord bot token
+const { DISCORD_TOKEN } = process.env;
+if (!DISCORD_TOKEN) {
+  logger.fatal('No DISCORD_TOKEN provided in environment variables. Aborting startup.');
+  process.exit(1);
+}
+
 // Initializing configuration
 await Config.init();
 if (Config.missingKeys.length > 0) {
@@ -63,15 +70,6 @@ const timing = {
   ready: new Date(),
 };
 
-logger.info('Setting up Discord token');
-const { DISCORD_TOKEN } = process.env;
-
-if (!DISCORD_TOKEN) {
-  logger.error('No token provided');
-  throw new Error('No token provided');
-}
-
-logger.info('Token set!');
 logger.info('Creating client with intents');
 
 const client = new BaseClient({
