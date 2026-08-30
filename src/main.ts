@@ -139,6 +139,7 @@ client.once(Events.ClientReady, async (client) => {
     },
   });
   logger.info(`Logged in as ${client.user.tag}!`);
+  console.log(`Logged in as ${client.user.tag}!`);
 
   // Sweep and enrich any registration webhooks that arrived while the bot was offline
   const { sweepUnprocessedRegistrations } = await import('./events/new-register');

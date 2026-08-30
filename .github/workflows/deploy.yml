@@ -27,13 +27,16 @@ jobs:
 
           if [ "$RUN_SCRIPT" = "start" ]; then
             APP_NAME="esports-bot"
+            NODE_ENV="production"
           else
             APP_NAME="esports-bot-dev"
+            NODE_ENV="development"
           fi
 
           echo "run_script=$RUN_SCRIPT" >> "$GITHUB_OUTPUT"
           echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
-          echo "Deploying with mode '$RUN_SCRIPT' (PM2 process: '$APP_NAME')"
+          echo "node_env=$NODE_ENV" >> "$GITHUB_OUTPUT"
+          echo "Deploying with mode '$RUN_SCRIPT' (PM2 process: '$APP_NAME', NODE_ENV: '$NODE_ENV')"
 
       - name: Inject Private Configuration
         run: |
@@ -51,7 +54,8 @@ jobs:
           export PATH="$HOME/.bun/bin:$PATH"
           APP_NAME="${{ steps.env.outputs.app_name }}"
           RUN_SCRIPT="${{ steps.env.outputs.run_script }}"
+          NODE_ENV="${{ steps.env.outputs.node_env }}"
 
-          echo "Starting/restarting PM2 app '$APP_NAME' with command 'bun run $RUN_SCRIPT'..."
-          pm2 restart "$APP_NAME" --update-env || pm2 start "bun run $RUN_SCRIPT" --name "$APP_NAME"
+          echo "Starting/restarting PM2 app '$APP_NAME' with command 'NODE_ENV=$NODE_ENV bun run $RUN_SCRIPT'..."
+          NODE_ENV="$NODE_ENV" pm2 restart "$APP_NAME" --update-env || NODE_ENV="$NODE_ENV" pm2 start "NODE_ENV=$NODE_ENV bun run $RUN_SCRIPT" --name "$APP_NAME"
           pm2 save
