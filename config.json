@@ -1,0 +1,25 @@
+{
+  "webhooks": {
+    "logs": {
+      "name": "Jason B Wise Logs"
+    },
+    "new-register": {
+      "id": "1280328619704451114",
+      "channel-id": "1280328507905282068",
+      "startup-sweep-message-limit": 25
+    },
+    "message-log": {
+      "name": "Message Logs"
+    }
+  },
+  "roles": {
+    "raider": "487305397204418560",
+    "guest": "678974090018553867",
+    "not-signed-up": "512838063152562194"
+  },
+  "channels": {
+    "help": "626872024375230492",
+    "logs": "1336822381309853817",
+    "message-log": "1370534644293959700"
+  }
+}

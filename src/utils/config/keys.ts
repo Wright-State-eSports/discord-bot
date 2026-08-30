@@ -60,7 +60,7 @@ export const ConfigKeys = {
   // Webhooks
   Webhooks: key('webhooks', {
     Logs: key('logs', {
-      Id: key('id'),
+      Name: key('name'),
     }),
     NewRegister: key('new-register', {
       Id: key('id'),
@@ -82,6 +82,7 @@ export const ConfigKeys = {
   // Channels
   Channels: key('channels', {
     Help: key('help'),
+    Logs: key('logs'),
     MessageLog: key('message-log'),
   }),
 } as const;
