@@ -1,7 +1,7 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { execFile } from 'node:child_process';
 
-import { AppLogger, confirmPrompt, DiscordLogger, userCombo } from '../utils';
+import { AppLogger, confirmPrompt, DiscordLogger, channelCombo, userCombo } from '../utils';
 
 const SAFE_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const DEFAULT_PROCESS_NAME = 'esports-bot-dev';
@@ -55,7 +55,7 @@ export default {
 
     await DiscordLogger.embed(
       logger.warn,
-      `🛑 Bot shutdown initiated by ${userCombo(interaction)} in ${interaction.channel ? `<#${interaction.channel.id}>` : 'DM'}.`,
+      `🛑 Bot shutdown initiated by ${userCombo(interaction)} in ${channelCombo(interaction.channel)}.`,
       {
         options: {
           title: 'Bot Shutting Down',

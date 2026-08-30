@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, GuildMember, MessageFlags, SlashCommandBuilder } from 'discord.js';
 
-import { AppLogger, hasGuestRole, hasRaiderRole, type AppLoggerInstance } from '../utils';
+import { AppLogger, hasGuestRole, hasRaiderRole, userCombo, type AppLoggerInstance } from '../utils';
 
 /**
  * Sends the appropriate sign-up form link based on whether the user is registering as a member or a guest.
@@ -30,7 +30,7 @@ export default {
         break;
       default:
         logger.warn(
-          `User ${interaction.user.tag} attempted to use the signup command with an invalid option: ${signupType}`,
+          `User ${userCombo(interaction)} attempted to use the signup command with an invalid option: ${signupType}`,
         );
         await interaction.reply({
           content: 'Invalid option. Please choose either "member" or "guest".',
@@ -51,7 +51,7 @@ async function handleMemberSignup(interaction: ChatInputCommandInteraction, logg
         : await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
 
     if (member && (await hasRaiderRole(member))) {
-      logger.info(`User ${interaction.user.tag} attempted to sign up as a member, but is already a member.`);
+      logger.info(`User ${userCombo(interaction)} attempted to sign up as a member, but is already a member.`);
       await interaction.editReply({
         content: '✅ You are already registered as a member!',
       });
@@ -63,7 +63,7 @@ async function handleMemberSignup(interaction: ChatInputCommandInteraction, logg
     'Please sign up and join our engage using this link: https://wright.edu/esports\n\n' +
     'Fill out this pre-filled form. **Your username should be autofilled** and you can skip the first question.\n' +
     `[Sign-Up Form](https://docs.google.com/forms/d/e/1FAIpQLSeHGVtR0kDaSaLfJ_4AfNlVNgwOsgvkeM67Z-gieDxd70l5Dg/viewform?usp=pp_url&entry.1322096694=${interaction.user.tag})`;
-  logger.info(`Sent Member Signup Message to ${interaction.user.tag}`);
+  logger.info(`Sent Member Signup Message to ${userCombo(interaction)}`);
 
   await interaction.editReply({ content: message });
 }
@@ -80,7 +80,7 @@ async function handleGuestSignup(interaction: ChatInputCommandInteraction, logge
 
     if (member) {
       if (await hasRaiderRole(member)) {
-        logger.info(`User ${interaction.user.tag} attempted to sign up as a guest, but is already a member.`);
+        logger.info(`User ${userCombo(interaction)} attempted to sign up as a guest, but is already a member.`);
         await interaction.editReply({
           content: '✅ You are already registered as a member!',
         });
@@ -88,7 +88,7 @@ async function handleGuestSignup(interaction: ChatInputCommandInteraction, logge
       }
 
       if (await hasGuestRole(member)) {
-        logger.info(`User ${interaction.user.tag} attempted to sign up as a guest, but is already a guest.`);
+        logger.info(`User ${userCombo(interaction)} attempted to sign up as a guest, but is already a guest.`);
         await interaction.editReply({
           content:
             '✅ You are already registered as a guest! If you would like to join as a full member, use `/signup as:member`.',
@@ -99,7 +99,7 @@ async function handleGuestSignup(interaction: ChatInputCommandInteraction, logge
   }
 
   const message = 'Please fill out this form for guest sign up: https://forms.gle/jbBbWaeyYU3qBa6F9';
-  logger.info(`Sent Guest Signup Message to ${interaction.user.tag}`);
+  logger.info(`Sent Guest Signup Message to ${userCombo(interaction)}`);
 
   await interaction.editReply({ content: message });
 }

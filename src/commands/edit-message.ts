@@ -9,7 +9,7 @@ import {
   type TextBasedChannel,
 } from 'discord.js';
 
-import { AppLogger, MessageSelection, userCombo } from '../utils';
+import { AppLogger, MessageSelection, channelCombo, userCombo } from '../utils';
 
 // Regex to extract channel ID and message ID from Discord message URLs
 const MESSAGE_URL_REGEX = /https:\/\/(?:canary\.|ptb\.)?discord\.com\/channels\/(?:\d+|@me)\/(\d+)\/(\d+)/;
@@ -179,7 +179,9 @@ export default {
       const editedMessage = await targetMessage.edit(payload);
       MessageSelection.clear(interaction.user.id);
 
-      logger.info(`${userCombo(interaction)} successfully edited message ${targetMessage.id} in ${channel.id}`);
+      logger.info(
+        `${userCombo(interaction)} successfully edited message ${targetMessage.id} in ${channelCombo(channel)}`,
+      );
       await interaction.editReply({
         content: `✅ Successfully edited message in ${channel.toString()}!\n[Jump to Message](${editedMessage.url})`,
       });

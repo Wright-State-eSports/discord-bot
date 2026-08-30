@@ -9,7 +9,7 @@ import {
   PermissionFlagsBits,
 } from 'discord.js';
 
-import { AppLogger, MessageSelection, userCombo } from '../utils';
+import { AppLogger, MessageSelection, channelCombo, userCombo } from '../utils';
 
 /**
  * Message context menu command that marks a bot-authored message for editing.
@@ -47,7 +47,9 @@ export default {
       previewContent: preview,
     });
 
-    logger.info(`${userCombo(interaction)} selected message ${targetMessage.id} in channel ${targetMessage.channelId}`);
+    logger.info(
+      `${userCombo(interaction)} selected message ${targetMessage.id} in channel ${channelCombo(targetMessage.channel, targetMessage.channelId)}`,
+    );
 
     const cancelButton = new ButtonBuilder()
       .setCustomId('cancel-message-selection')

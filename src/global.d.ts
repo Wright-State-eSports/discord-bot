@@ -14,7 +14,7 @@ import {
   ClientEvents,
 } from 'discord.js';
 
-import type { AppLoggerInstance } from './utils/logger.ts';
+import type { AppLoggerInstance } from './utils/logger';
 
 declare global {
   /**

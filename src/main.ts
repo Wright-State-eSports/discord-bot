@@ -37,7 +37,7 @@
  */
 import { type APIEmbedField, Client as BaseClient, Events, GatewayIntentBits, Partials } from 'discord.js';
 
-import { AppLogger, DiscordLogger, EventRegistry, Config, CommandRegistry } from './utils';
+import { AppLogger, DiscordLogger, EventRegistry, Config, CommandRegistry, accessToken } from './utils';
 
 // Setting up logger
 const logger = new AppLogger('discord').child('main');
@@ -54,6 +54,9 @@ await Config.init();
 if (Config.missingKeys.length > 0) {
   logger.warn(`Startup config warning: Missing ${Config.missingKeys.length} key(s): ${Config.missingKeys.join(', ')}`);
 }
+
+// Initializing Google Auth Token
+await accessToken.initToken();
 
 // Initializing In-Discord logging
 await DiscordLogger.init();
@@ -86,6 +89,8 @@ const client = new BaseClient({
   ],
   partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember],
 }) as Client;
+
+DiscordLogger.setClient(client);
 
 logger.info('Client setup!');
 logger.info('Attaching commands');

@@ -69,13 +69,14 @@ export async function confirmPrompt(
       components: [row],
     });
   } else {
-    message = await interaction.reply({
+    const response = await interaction.reply({
       content,
       embeds: embeds ?? [],
       components: [row],
       flags: ephemeral ? MessageFlags.Ephemeral : undefined,
-      fetchReply: true,
+      withResponse: true,
     });
+    message = response.resource?.message ?? (await interaction.fetchReply());
   }
 
   try {

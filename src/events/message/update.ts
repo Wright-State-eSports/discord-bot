@@ -1,6 +1,6 @@
 import { EmbedBuilder, Events, type Message, type PartialMessage } from 'discord.js';
 
-import { AppLogger, MessageLogSink } from '../../utils';
+import { AppLogger, MessageLogSink, channelCombo } from '../../utils';
 
 const logger = AppLogger.get('events').child('message-update');
 
@@ -13,10 +13,7 @@ export default {
   event: Events.MessageUpdate,
   execute: async (oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage): Promise<void> => {
     try {
-      // Resolve partial messages if possible
-      if (oldMessage.partial) {
-        oldMessage = await oldMessage.fetch().catch(() => oldMessage);
-      }
+      // Resolve newMessage if partial (oldMessage.fetch() would return the new edited content from Discord REST API)
       if (newMessage.partial) {
         newMessage = await newMessage.fetch().catch(() => newMessage);
       }
@@ -24,14 +21,14 @@ export default {
       // Ignore direct messages
       if (!newMessage.guild && !oldMessage.guild) return;
 
-      // Ignore bots, webhooks, or messages without identifiable author
+      // Ignore bots or webhooks
       const author = newMessage.author ?? oldMessage.author;
-      if (!author || author.bot || newMessage.webhookId || oldMessage.webhookId) {
+      if (author?.bot || newMessage.webhookId || oldMessage.webhookId) {
         return;
       }
 
-      // Ignore updates that did not change text content (e.g. link preview unfurls, pins)
-      if (oldMessage.content === newMessage.content) {
+      // Ignore updates that did not change text content if both have content
+      if (oldMessage.content && newMessage.content && oldMessage.content === newMessage.content) {
         return;
       }
 
@@ -40,13 +37,20 @@ export default {
       const messageId = newMessage.id || oldMessage.id;
       const channelId = newMessage.channelId || oldMessage.channelId;
       const messageUrl = newMessage.url || oldMessage.url;
+      const channelDisplay = channelCombo(newMessage.channel || oldMessage.channel, channelId);
+
+      const authorUsername = author ? (author.tag && author.tag !== '0' ? author.tag : author.username) : 'Unknown';
+
+      const authorInfo = author
+        ? `Username: ${authorUsername}
+Nickname: ${nickname}
+User @: <@${author.id}>`
+        : `Author: Unknown (uncached message)`;
 
       const description = `**Click on title to view message**
-Username: ${author.username}
-Nickname: ${nickname}
-User @: <@${author.id}>
+${authorInfo}
 Message ID: ${messageId}
-Channel: <#${channelId}>`;
+Channel: ${channelDisplay}`;
 
       const embed = new EmbedBuilder()
         .setTitle('Message Edited')
@@ -55,7 +59,7 @@ Channel: <#${channelId}>`;
         .addFields(
           {
             name: 'Original Message',
-            value: formatMessageContent(oldMessage.content),
+            value: formatMessageContent(oldMessage.content, '*(Previous version could not be retrieved / uncached)*'),
             inline: false,
           },
           {
@@ -65,7 +69,7 @@ Channel: <#${channelId}>`;
           },
           {
             name: 'Edited Message',
-            value: formatMessageContent(newMessage.content),
+            value: formatMessageContent(newMessage.content, '*(No text content or could not be retrieved)*'),
             inline: false,
           },
         )
@@ -75,16 +79,16 @@ Channel: <#${channelId}>`;
 
       const client = newMessage.client || oldMessage.client;
       await MessageLogSink.send(client, { embeds: [embed] });
-      logger.debug(`Logged edited message ${messageId} by ${author.tag} in <#${channelId}>`);
+      logger.debug(`Logged edited message ${messageId} in <#${channelId}>`);
     } catch (error) {
       logger.error(error, 'Error handling MessageUpdate event');
     }
   },
 } satisfies EventHandler<Events.MessageUpdate>;
 
-function formatMessageContent(content?: string | null): string {
+function formatMessageContent(content?: string | null, fallback = '*(No text content or empty)*'): string {
   if (!content || content.trim().length === 0) {
-    return "*(Couldn't fetch message or empty)*";
+    return fallback;
   }
   if (content.length > 1024) {
     return content.slice(0, 1021) + '...';

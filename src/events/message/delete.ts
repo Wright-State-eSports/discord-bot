@@ -1,6 +1,6 @@
 import { EmbedBuilder, Events, type Message, type PartialMessage } from 'discord.js';
 
-import { AppLogger, MessageLogSink } from '../../utils';
+import { AppLogger, MessageLogSink, channelCombo } from '../../utils';
 
 const logger = AppLogger.get('events').child('message-delete');
 
@@ -19,19 +19,22 @@ export default {
       // If message is a webhook or bot, ignore it
       if (message.webhookId || message.author?.bot) return;
 
-      // If message is uncached / partial without author information, we cannot retrieve who sent it
-      if (!message.author) {
-        logger.debug(`Uncached message ${message.id} deleted in <#${message.channelId}>. Skipping log.`);
-        return;
-      }
-
       const nickname = message.member?.nickname ?? message.member?.displayName ?? 'N/A';
-      const authorField = `Username: ${message.author.username}
+      const channelDisplay = channelCombo(message.channel, message.channelId);
+      const authorField = message.author
+        ? `Username: ${message.author.tag && message.author.tag !== '0' ? message.author.tag : message.author.username}
 Nickname: ${nickname}
 User @: <@${message.author.id}>
-Channel: <#${message.channelId}>`;
+Message ID: ${message.id}
+Channel: ${channelDisplay}`
+        : `Message ID: ${message.id}
+Channel: ${channelDisplay}
+Note: Author details could not be retrieved (uncached message)`;
 
-      let content = message.content && message.content.trim().length > 0 ? message.content : '*(No text content)*';
+      let content =
+        message.content && message.content.trim().length > 0
+          ? message.content
+          : '*(Message content could not be retrieved or was empty)*';
       if (content.length > 3500) {
         content = content.slice(0, 3497) + '...';
       }
@@ -63,7 +66,7 @@ Channel: <#${message.channelId}>`;
       }
 
       await MessageLogSink.send(message.client, { embeds: [embed] });
-      logger.debug(`Logged deleted message ${message.id} by ${message.author.tag} in <#${message.channelId}>`);
+      logger.debug(`Logged deleted message ${message.id} in <#${message.channelId}>`);
     } catch (error) {
       logger.error(error, 'Error handling MessageDelete event');
     }
