@@ -33,13 +33,12 @@ Copy `.env.development` and fill in your own values:
 cp .env.development .env.development.local
 ```
 
-| Variable               | Where to get it                                                                                  |
-| :--------------------- | :----------------------------------------------------------------------------------------------- |
-| `DISCORD_TOKEN`        | Discord Developer Portal → Your App → Bot → Token                                                |
-| `CLIENT_ID`            | Discord Developer Portal → Your App → General Information → Application ID                       |
-| `GUILD_ID`             | Right-click your Discord server → Copy Server ID (enable Dev Mode first)                         |
-| `LOGGER_WEBHOOK_TOKEN` | Discord channel → Edit → Integrations → Webhooks → Copy URL (the token is the last path segment) |
-| `SCRIPT_LINK`          | Google Apps Script web app deployment URL (optional)                                             |
+| Variable        | Where to get it                                                            |
+| :-------------- | :------------------------------------------------------------------------- |
+| `DISCORD_TOKEN` | Discord Developer Portal → Your App → Bot → Token                          |
+| `CLIENT_ID`     | Discord Developer Portal → Your App → General Information → Application ID |
+| `GUILD_ID`      | Right-click your Discord server → Copy Server ID (enable Dev Mode first)   |
+| `SCRIPT_LINK`   | Google Apps Script web app deployment URL (optional)                       |
 
 ### 3. Set Up `config.dev.json`
 
@@ -55,6 +54,9 @@ Create `config.dev.json` at the project root:
       "id": "<new-register-webhook-id>",
       "channel-id": "<registration-channel-id>",
       "startup-sweep-message-limit": 25
+    },
+    "message-log": {
+      "name": "Message Logs"
     }
   },
   "roles": {
@@ -63,7 +65,8 @@ Create `config.dev.json` at the project root:
     "not-signed-up": "<not-signed-up-role-id>"
   },
   "channels": {
-    "help": "<help-channel-id>"
+    "help": "<help-channel-id>",
+    "message-log": "<message-log-channel-id>"
   }
 }
 ```
@@ -78,6 +81,7 @@ Create `config.dev.json` at the project root:
 | `new-register.id`                          | `webhooks.new-register.id`                          | `string` | Webhook ID for incoming registration webhook messages                         |
 | `new-register.channel-id`                  | `webhooks.new-register.channel-id`                  | `string` | Channel ID where the registration webhook posts                               |
 | `new-register.startup-sweep-message-limit` | `webhooks.new-register.startup-sweep-message-limit` | `number` | Max messages to sweep on startup for unprocessed registrations (default `25`) |
+| `message-log.name`                         | `webhooks.message-log.name`                         | `string` | Name for the auto-provisioned message log webhook (default `Message Logs`)    |
 
 ##### `roles`
 
@@ -89,9 +93,10 @@ Create `config.dev.json` at the project root:
 
 ##### `channels`
 
-| Key    | Path            | Type     | Description                                                                     |
-| :----- | :-------------- | :------- | :------------------------------------------------------------------------------ |
-| `help` | `channels.help` | `string` | Channel ID where help/approval notifications (`<@user>, you are set!`) are sent |
+| Key           | Path                   | Type     | Description                                                                     |
+| :------------ | :--------------------- | :------- | :------------------------------------------------------------------------------ |
+| `help`        | `channels.help`        | `string` | Channel ID where help/approval notifications (`<@user>, you are set!`) are sent |
+| `message-log` | `channels.message-log` | `string` | Channel ID where edited and deleted message audit logs are sent via webhook     |
 
 ### 4. Run
 
@@ -103,11 +108,12 @@ bun run dev
 
 ## Code Conventions
 
-### File Naming
+### File Naming & Grouping
 
 - All source files use **kebab-case**: `new-register.ts`, `button-interaction.ts`.
-- Command filenames **must exactly match** their `data.name` field. The `CommandRegistry` enforces this at load time.
-- Event handler filenames **must exactly match** their `name` field. `EventRegistry` enforces this too.
+- **Grouping Rule**: Whenever there are **2 or more related events, commands, or utilities**, place them inside their own dedicated directory (e.g. `src/events/message/`, `src/events/button/`, `src/utils/command/`, `src/utils/config/`, `src/utils/member/`).
+- Command filenames **must exactly match** their `data.name` field. The `CommandRegistry` enforces this at load time and scans subdirectories recursively.
+- Event handler filenames or export names **must match** their `name` field. `EventRegistry` enforces this and scans subdirectories recursively.
 
 ### Exports
 
@@ -173,7 +179,7 @@ bun run dev
 
 ## Working with Config
 
-All configuration keys live in [`src/utils/config-keys.ts`](src/utils/config-keys.ts). This is the single source of truth.
+All configuration keys live in [`src/utils/config/keys.ts`](src/utils/config/keys.ts). This is the single source of truth.
 
 ### Reading a value
 
@@ -189,28 +195,11 @@ const roleId = await Config.get(ConfigKeys.Roles.Raider);
 const roleId = (await Config.get(ConfigKeys.Roles.Raider)) ?? 'fallback-id';
 ```
 
-### Writing a value
-
-```typescript
-await Config.set(ConfigKeys.Channels.Help, '1234567890');
-```
-
-Writes are automatically persisted to `config.json` (debounced by 1 second).
-
-### Listening for changes
-
-```typescript
-const disposer = await Config.addChangeListener(([oldVal, newVal]) => {
-  console.log(`Help channel changed from ${oldVal} to ${newVal}`);
-}, ConfigKeys.Channels.Help);
-
-// Later, to stop listening:
-disposer();
-```
+````
 
 ### Adding a new config key
 
-1. Open `src/utils/config-keys.ts`.
+1. Open `src/utils/config/keys.ts`.
 2. Add the key to the appropriate `key()` group or create a new one:
 
    ```typescript
@@ -221,7 +210,7 @@ disposer();
      NotSignedUp: key('not-signed-up'),
      Moderator: key('moderator'), // ← new
    }),
-   ```
+````
 
 3. Add the corresponding entry to `config.dev.json` and `config.json`:
 
@@ -424,5 +413,5 @@ type ConfigKey = 'webhooks.logs.id' | 'roles.raider' | 'channels.help' | ...
 | Command ignored at runtime        | Check that `data.name` matches the filename                                             |
 | Event handler not firing          | Check that `name` matches the filename                                                  |
 | Config value is `undefined`       | Check the key exists in `config.dev.json` and the path matches `ConfigKeys`             |
-| `DiscordLogger` not sending       | Verify `LOGGER_WEBHOOK_TOKEN` is set and `webhooks.logs.id` is in config                |
+| `DiscordLogger` not sending       | Verify `channels.logs` is configured and the bot has permissions in that channel        |
 | Registration sweep not running    | Ensure `webhooks.new-register.id` and `webhooks.new-register.channel-id` are configured |

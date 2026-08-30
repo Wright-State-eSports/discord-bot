@@ -41,13 +41,13 @@ The entry point is fully sequential — nothing is registered until its prerequi
 
 ## Registry Pattern
 
-Both commands and events use a shared abstract `Registry<T>` base class (`src/utils/registry.ts`), which extends discord.js's `Collection<string, T>` (a typed `Map`).
+Both commands and events use a shared abstract `AbstractRegistry<T>` base class (`src/structures/AbstractRegistry.ts`), which extends discord.js's `Collection<string, T>` (a typed `Map`).
 
 ```
-Registry<T> (extends Collection<string, T>)
+AbstractRegistry<T> (extends Collection<string, T>)
 │
-├── CommandRegistryClass extends Registry<Command>
-└── EventRegistryClass extends Registry<EventHandler<K>>
+├── CommandRegistryClass extends AbstractRegistry<Command>
+└── EventRegistryClass extends AbstractRegistry<EventHandler<K>>
 ```
 
 Each registry tracks three sets:
@@ -96,7 +96,7 @@ type Command = ChatInputCommand | ContextMenuCommand;
 
 ### Registration
 
-Running `bun run register` (`src/utils/register-commands.ts`) uses the Discord REST API to push all currently loaded commands as guild commands to `GUILD_ID`.
+Running `bun run register` (`src/utils/command/register.ts`) uses the Discord REST API to push all currently loaded commands as guild commands to `GUILD_ID`.
 
 ---
 
@@ -123,28 +123,17 @@ Multiple handlers can listen to the same event (e.g. both `button-interaction.ts
 
 Configuration is stored in `config.json` (production) or `config.dev.json` (development) as a plain JSON object at the project root. The active file is selected by `NODE_ENV`.
 
-### `Config` class (`src/utils/config.ts`)
+### `Config` class (`src/utils/config/config.ts`)
 
-A static class with three core methods:
+A static class providing static read access and startup validation for configuration:
 
-| Method                               | Description                                              |
-| :----------------------------------- | :------------------------------------------------------- |
-| `Config.get(key)`                    | Reads a dot-separated key path from the in-memory config |
-| `Config.set(key, value)`             | Writes a value and persists to disk (debounced 1s)       |
-| `Config.addChangeListener(fn, key?)` | Subscribes to changes, optionally scoped to a key path   |
+| Method              | Description                                                                              |
+| :------------------ | :--------------------------------------------------------------------------------------- |
+| `Config.init()`     | Loads the active configuration file into memory and validates all required keys          |
+| `Config.get(key)`   | Reads a dot-separated key path from the in-memory config                                 |
+| `Config.validate()` | Verifies that all required keys from `ConfigKeys` are defined and logs any missing paths |
 
-Writes are debounced (1 second) to prevent excessive disk I/O on rapid successive `set` calls.
-
-The change listener tree bubbles up from the most specific key to the root, notifying all ancestors:
-
-```
-set('roles.raider', value) ──► triggers listeners for:
-  1. 'roles.raider' (most specific)
-  2. 'roles'
-  3. root (all-changes listener)
-```
-
-### `ConfigKeys` (`src/utils/config-keys.ts`)
+### `ConfigKeys` (`src/utils/config/keys.ts`)
 
 A statically typed object tree mapping human-readable property paths to their dot-separated JSON key equivalents. This is the **single source of truth** for all config paths.
 
@@ -188,9 +177,9 @@ Outputs to:
 - **`logs/app.log`** (`info` level and above)
 - **`logs/error.log`** (`error` level and above)
 
-### `DiscordLogger` (Webhook)
+### `DiscordLogger` (Automated Webhook Sink)
 
-Streams notable events to a Discord channel via webhook. Initialized on startup using `ConfigKeys.Webhooks.Logs.Id` and `LOGGER_WEBHOOK_TOKEN`.
+Streams notable events to the designated log channel (`channels.logs`). Dynamically searches for or provisions a bot-owned webhook (`webhooks.logs.name`, default: `"Bot Logs"`) without requiring manual secret tokens in `.env`. Automatically cleans up old webhooks on channel migration and falls back to direct `channel.send()` if webhook permissions are unavailable.
 
 ```typescript
 await DiscordLogger.embed(logger.warn, 'Something notable happened', {
