@@ -7,6 +7,7 @@ import { handleApproveMember } from './approve-member';
 import { handleCancelApproval } from './cancel-approval';
 import { handleCancelMessageSelection } from './cancel-message-selection';
 import { handleChangeRegistrationUser } from './change-user';
+import { handleGuestForm } from './guest-form';
 import { handleRemind } from './remind';
 import { handleRetryRegistrationLookup } from './retry-lookup';
 import { handleSignUpForm } from './signup-form';
@@ -17,6 +18,7 @@ export * from './approve-member';
 export * from './cancel-approval';
 export * from './cancel-message-selection';
 export * from './change-user';
+export * from './guest-form';
 export * from './remind';
 export * from './retry-lookup';
 export * from './signup-form';
@@ -63,6 +65,11 @@ export default {
         case 'signup-form':
         case 'sign-up-form':
           await handleSignUpForm(interaction);
+          break;
+
+        case 'guest-form':
+        case 'guest-signup-form':
+          await handleGuestForm(interaction);
           break;
 
         case 'cancel-message-selection':

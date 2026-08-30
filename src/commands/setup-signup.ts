@@ -129,12 +129,11 @@ const messages = [
   separator,
 
   '## Guest Form\n' +
-    'Please fill out the form by clicking on the button below or using the </signup> guest command. \n' +
-    '**If you are signing up as a guest**.' +
-    'Using the commnad will autofill your username, so you can skip the first question.\n',
-  actionRow([
-    new ButtonBuilder().setLabel('Guest Form').setStyle(ButtonStyle.Link).setURL('https://forms.gle/jbBbWaeyYU3qBa6F9'),
-  ]),
+    'Please fill out the form by clicking the button below or using the </signup> guest command. \n' +
+    '**If you are signing up as a guest**.\n' +
+    '**Your username will be autofilled**, so you can skip the first question.\n' +
+    "If this button doesn't work, please ask one of the Officers for help in <#1207448695189282869>",
+  actionRow([new ButtonBuilder().setCustomId('guest-form').setLabel('Guest Form').setStyle(ButtonStyle.Secondary)]),
 
   separator,
 ];
