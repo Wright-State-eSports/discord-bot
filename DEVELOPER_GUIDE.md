@@ -365,6 +365,22 @@ await DiscordLogger.log(logger.info, 'Bot restarted successfully');
 
 2. Add the `customId` switch case and export to [`src/events/button/index.ts`](src/events/button/index.ts).
 
+---
+
+## Adding a Select Menu Handler
+
+1. Create `src/events/select-menu/<menu-action>.ts`:
+
+   ```typescript
+   import type { AnySelectMenuInteraction } from 'discord.js';
+
+   export async function handleMySelectMenu(interaction: AnySelectMenuInteraction): Promise<void> {
+     // handle select menu action
+   }
+   ```
+
+2. Add the `customId` switch case or prefix check in [`src/events/select-menu/index.ts`](src/events/select-menu/index.ts).
+
 The `EventRegistry` automatically discovers and loads both flat files (`src/events/<name>.ts`) and directory modules (`src/events/<name>/index.ts`) on startup. No manual registration needed.
 
 ---

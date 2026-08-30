@@ -193,7 +193,7 @@ await DiscordLogger.log(logger.info, 'Bot is starting up');
 
 ## Member Registration Pipeline
 
-The most complex feature of the bot. An external Google Apps Script posts a webhook to the registration channel. The bot intercepts it and enriches it in place.
+The member registration pipeline handles sign-ups from Google Forms/Sheets. The bot intercepts incoming registration webhooks, looks up the Discord member (with fuzzy fallback via `fuse.js`), and surfaces interactive approval cards.
 
 ```
 Google Apps Script
@@ -204,34 +204,63 @@ Discord channel message (raw embed, no buttons)
         ▼
 new-register.ts: processRegistrationWebhook()
         │
-        ├── Verify it's from the expected webhook ID
-        ├── Parse embed fields (Name, Discord Username, Email, Register As, Sheet Row, ...)
-        ├── Query guild members to find the Discord user
-        ├── Build enriched EmbedBuilder (Green/Grey/Red depending on status)
-        ├── Attach interactive buttons (Approve / Cancel Approval, Engage)
-        ├── channel.send() — post the enriched card from the bot client
-        └── message.delete() — delete the raw incoming webhook message
+        ├── Verify webhook ID / context
+        ├── Parse embed fields (Name, Discord Username, Email, Register As, Sheet Row)
+        ├── Query guild members with strict lookup & Fuse.js similarity scoring
+        │     ├── Exact Match (>=95% score) ──► Builds matched card with Approve/Engage/Change buttons
+        │     └── Unmatched (<95% score)    ──► Builds suggestion card with Top 5 dropdown & User Picker
+        ├── Post enriched card from the bot client
+        └── Delete raw incoming webhook message
 ```
+
+### Context Menu Safeguards
+
+The **Enrich Registration** context menu command (`src/context-menus/enrich-registration.ts`) allows admins to manually parse and enrich registration messages if an incoming webhook arrives unhandled. It incorporates `isMessageAlreadyEnriched` checks to prevent duplicate cards or re-enrichment.
 
 ### Startup Sweep
 
-On `ClientReady`, `sweepUnprocessedRegistrations()` scans the last N messages (configurable via `ConfigKeys.Webhooks.NewRegister.SweepLimit`) in the registration channel and processes any incoming webhook messages that arrived while the bot was offline.
+On `ClientReady`, `sweepUnprocessedRegistrations()` scans recent messages in the registration channel and processes any incoming webhook messages that arrived while the bot was offline.
 
 ---
 
-## Message Editing Workflow
+## Announcement Studio & Message Editing
 
-A two-step admin workflow for editing bot-sent messages:
+The bot provides two dedicated workflows for publishing and revising bot-sent messages:
+
+### 1. Announcement Studio (`/announce` & `/edit-announcement`)
+
+A private in-chat staging environment designed for long-form announcements with rich markdown and pings:
 
 ```
-1. Right-click any bot message → "Select Message to Edit"
-   └── context-menu/select-message.ts → MessageSelection.set(userId, { messageId, channelId })
-
-2. /edit-message [content] [attachment]
-   └── commands/edit-message.ts → MessageSelection.get(userId) → channel.messages.fetch → message.edit()
+/announce [channel]  OR  /edit-announcement [message] [channel]
+        │
+        ▼
+Private Thread Created (invitable: false, scoped to invoking admin)
+        │
+        ├── Initial Guide & Gotchas Embed (Change Destination & Cancel buttons)
+        ├── (If Edit Mode) Standalone Raw Markdown Code Block with native Discord "Copy" button
+        │
+        ▼
+Admin types draft directly in chat (supports # headers, lists, emojis, @mentions, attachments)
+        │
+        ▼
+Bot attaches Send / Update Action Bar below the message:
+        ├── [🚀 Send Announcement]   ──► Posts raw formatted message to target channel with live pings
+        ├── [🔄 Update Announcement] ──► Updates existing message in target channel
+        └── [❌ Cancel & Delete]     ──► Cleans up the private staging thread
 ```
 
-`MessageSelection` is an in-memory TTL cache (1-hour window, keyed by user ID) in `src/utils/message-selection.ts`.
+### 2. Quick Edit (`/quick-edit`)
+
+For rapid, single-command inline edits of bot-sent text and attachments without opening a thread:
+
+```
+1. Right-click bot message → Apps → "Select Message to Edit"
+   └── context-menus/select-message.ts → MessageSelection.set(userId, { messageId, channelId })
+
+2. /quick-edit content: "Updated text"
+   └── commands/quick-edit.ts → MessageSelection.get(userId) → message.edit()
+```
 
 ---
 
@@ -239,21 +268,30 @@ A two-step admin workflow for editing bot-sent messages:
 
 ```
 main.ts
-  ├── utils/ (AppLogger, DiscordLogger, Config, CommandRegistry, EventRegistry)
+  ├── utils/ (AppLogger, DiscordLogger, Config, CommandRegistry, EventRegistry, MessageSelection, studioThreads, lookup)
   │
   ├── events/
-  │   ├── new-register.ts     ── uses Config, ConfigKeys
-  │   ├── button-interaction.ts ── uses Config, ConfigKeys
-  │   ├── chat-input-command.ts ── uses CommandRegistry, DiscordLogger
-  │   ├── context-menu-command.ts ── uses CommandRegistry, DiscordLogger
-  │   └── autocomplete.ts     ── uses CommandRegistry
+  │   ├── new-register.ts                 ── uses Config, ConfigKeys, enrichRegistrationMessage
+  │   ├── button/index.ts                 ── routes button interactions (approve, engage, studio, retry, change-user)
+  │   ├── select-menu/index.ts            ── routes select menus (registration-user, studio-destination)
+  │   ├── message/
+  │   │   ├── announce-studio.ts          ── listens for in-thread drafts, provides Send/Update action buttons
+  │   │   ├── delete.ts                   ── audit logs message deletions to message-log webhook
+  │   │   └── update.ts                   ── audit logs message edits to message-log webhook
+  │   ├── chat-input-command.ts           ── routes slash command execution
+  │   ├── context-menu-command.ts         ── routes context menu execution
+  │   └── autocomplete.ts                 ── handles slash command autocomplete
   │
   └── commands/
-      ├── commands.ts         ── uses CommandRegistry
-      ├── edit-message.ts     ── uses MessageSelection
-      ├── ping.ts
-      ├── say.ts
-      └── setup-signup.ts
+      ├── announce.ts                     ── opens Announcement Studio in creation mode
+      ├── edit-announcement.ts            ── opens Announcement Studio in edit mode with raw copyable block
+      ├── quick-edit.ts                   ── inline bot message editor
+      ├── commands.ts                     ── command management and runtime reloading
+      ├── ping.ts                         ── ping / heartbeat check
+      ├── say.ts                          ── basic message proxy
+      ├── setup-signup.ts                 ── generates sign-up help card
+      ├── signup.ts                       ── self-service member sign-up link
+      └── stop.ts                         ── administrative bot shutdown
 ```
 
 ---
