@@ -1,41 +1,46 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import pino, { type Logger } from 'pino';
+import pinoPretty from 'pino-pretty';
 
 // ==========================================
 // 1. Base Logger Setup
 // ==========================================
-const _BASE_PINO = pino({
-  level: 'debug',
-  transport: {
-    targets: [
-      // Pretty print to console in development
-      {
-        target: 'pino-pretty',
-        level: 'debug',
-        options: {
-          colorize: true,
-          messageFormat: '[{breadcrumbs}] {msg}',
-          ignore: 'pid,hostname,breadcrumbs,scopes',
-        },
-      },
-      {
-        target: 'pino/file',
-        level: 'info',
-        options: {
-          destination: `${process.cwd()}/logs/app.log`,
-          mkdir: true,
-        },
-      },
-      {
-        target: 'pino/file',
-        level: 'error',
-        options: {
-          destination: `${process.cwd()}/logs/error.log`,
-          mkdir: true,
-        },
-      },
-    ],
-  },
+const logsDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Direct console pretty stream
+const prettyStream = pinoPretty({
+  colorize: true,
+  messageFormat: '[{breadcrumbs}] {msg}',
+  ignore: 'pid,hostname,breadcrumbs,scopes',
 });
+
+// Direct synchronous file destinations (Bun compatible, avoiding thread-stream worker threads)
+const appLogStream = pino.destination({
+  dest: path.join(logsDir, 'app.log'),
+  sync: true,
+  mkdir: true,
+});
+
+const errorLogStream = pino.destination({
+  dest: path.join(logsDir, 'error.log'),
+  sync: true,
+  mkdir: true,
+});
+
+const _BASE_PINO = pino(
+  {
+    level: 'debug',
+  },
+  pino.multistream([
+    { stream: prettyStream, level: 'debug' },
+    { stream: appLogStream, level: 'info' },
+    { stream: errorLogStream, level: 'error' },
+  ]),
+);
 
 // Standard pino logger type used by the app.
 export type PinoInstance = Logger;
