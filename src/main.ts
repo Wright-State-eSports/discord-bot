@@ -114,11 +114,6 @@ client.once(Events.ClientReady, async (client) => {
 
   const readyFields: APIEmbedField[] = [
     {
-      name: 'Git Info',
-      value: `• **Branch:** \`${git.branch}\`\n• **Commit:** \`${git.shortCommit}\`${git.commitMessage ? `\n• *"${git.commitMessage}"*` : ''}`,
-      inline: true,
-    },
-    {
       name: 'Commands Loaded',
       value: `**Total:** \`${CommandRegistry.size}\`\n• Slash Commands: \`${CommandRegistry.slashCommands.size}\`\n• Context Menu Commands: \`${CommandRegistry.contextMenuCommands.size}\``,
       inline: true,
@@ -144,10 +139,11 @@ client.once(Events.ClientReady, async (client) => {
       title: Config.missingKeys.length > 0 ? 'Bot Ready (with Configuration Warnings)' : 'Bot Ready',
       color: Config.missingKeys.length > 0 ? 0xf59e0b : 0x00ff00,
       fields: readyFields,
+      footer: { text: `Branch: ${git.branch} • Commit: ${git.shortCommit}` },
     },
   });
-  logger.info(`Logged in as ${client.user.tag} on branch ${git.branch} (${git.shortCommit})!`);
-  console.log(`Logged in as ${client.user.tag} on branch ${git.branch} (${git.shortCommit})!`);
+  logger.info(`Logged in as ${client.user.tag} (${git.branch}@${git.shortCommit})!`);
+  console.log(`Logged in as ${client.user.tag} (${git.branch}@${git.shortCommit})!`);
 
   // Sweep and enrich any registration webhooks that arrived while the bot was offline
   const { sweepUnprocessedRegistrations } = await import('./events/new-register');
