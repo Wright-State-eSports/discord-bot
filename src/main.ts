@@ -37,10 +37,13 @@
  */
 import { type APIEmbedField, Client as BaseClient, Events, GatewayIntentBits, Partials } from 'discord.js';
 
-import { AppLogger, DiscordLogger, EventRegistry, Config, CommandRegistry, accessToken } from './utils';
+import { AppLogger, CommandRegistry, Config, DiscordLogger, EventRegistry, accessToken, getGitInfo } from './utils';
 
 // Setting up logger
 const logger = new AppLogger('discord').child('main');
+
+// Get git branch & commit info
+const git = getGitInfo();
 
 // Validate Discord bot token
 const { DISCORD_TOKEN } = process.env;
@@ -65,7 +68,7 @@ logger.info('╔═════════════════════�
 logger.info('║   WRIGHT STATE ESPORTS   ║');
 logger.info('║       DISCORD  BOT       ║');
 logger.info('╚══════════════════════════╝');
-logger.info('Booting up!');
+logger.info(`Booting up on branch: ${git.branch} (${git.shortCommit})`);
 const timing = {
   start: new Date(),
   setup: 0,
@@ -111,6 +114,11 @@ client.once(Events.ClientReady, async (client) => {
 
   const readyFields: APIEmbedField[] = [
     {
+      name: 'Git Info',
+      value: `• **Branch:** \`${git.branch}\`\n• **Commit:** \`${git.shortCommit}\`${git.commitMessage ? `\n• *"${git.commitMessage}"*` : ''}`,
+      inline: true,
+    },
+    {
       name: 'Commands Loaded',
       value: `**Total:** \`${CommandRegistry.size}\`\n• Slash Commands: \`${CommandRegistry.slashCommands.size}\`\n• Context Menu Commands: \`${CommandRegistry.contextMenuCommands.size}\``,
       inline: true,
@@ -138,8 +146,8 @@ client.once(Events.ClientReady, async (client) => {
       fields: readyFields,
     },
   });
-  logger.info(`Logged in as ${client.user.tag}!`);
-  console.log(`Logged in as ${client.user.tag}!`);
+  logger.info(`Logged in as ${client.user.tag} on branch ${git.branch} (${git.shortCommit})!`);
+  console.log(`Logged in as ${client.user.tag} on branch ${git.branch} (${git.shortCommit})!`);
 
   // Sweep and enrich any registration webhooks that arrived while the bot was offline
   const { sweepUnprocessedRegistrations } = await import('./events/new-register');
