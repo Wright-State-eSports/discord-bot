@@ -1,4 +1,33 @@
-import type { ButtonInteraction, Embed, Message } from 'discord.js';
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  Colors,
+  EmbedBuilder,
+  StringSelectMenuBuilder,
+  UserSelectMenuBuilder,
+  type ButtonInteraction,
+  type Embed,
+  type GuildMember,
+  type Message,
+} from 'discord.js';
+
+import {
+  findGuildMember,
+  findSimilarGuildMembers,
+  isRegistrationAlreadyApproved,
+  type SimilarMemberMatch,
+} from '../member';
+
+export interface RegistrationData {
+  name: string;
+  discordUsername: string;
+  email: string;
+  registerAs: 'member' | 'guest';
+  sheetRow: string;
+  purpose?: string;
+  discovery?: string;
+}
 
 /**
  * Extracts a Discord user ID from the registration card embed's 'Discord @' field or other mention format.
@@ -38,6 +67,57 @@ export function extractUserIdFromCard(source: ButtonInteraction | Message | Embe
   }
 
   return null;
+}
+
+/**
+ * Extracts registration form data from an existing registration card embed or message.
+ */
+export function extractRegistrationDataFromCard(
+  source: ButtonInteraction | Message | Embed | undefined,
+): RegistrationData | null {
+  if (!source) return null;
+
+  let embed: Embed | undefined;
+  if ('message' in source && source.message) {
+    embed = source.message.embeds[0];
+  } else if ('embeds' in source) {
+    embed = source.embeds[0];
+  } else if ('fields' in source) {
+    embed = source as Embed;
+  }
+
+  if (!embed || !embed.fields) return null;
+
+  const fields = embed.fields.reduce(
+    (acc, f) => {
+      acc[f.name] = f.value;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
+
+  const name = fields['Name'] || fields['Full Name'] || 'Unknown';
+  const discordUsername =
+    fields['Submitted Username'] || fields['Discord Username'] || fields['Username'] || fields['Discord Tag'] || '';
+  const email = fields['Email'] || fields['WSU Email'] || '';
+  const sheetRow = fields['Sheet Row'] || '';
+  const purpose = fields['Purpose of joining'] || fields['Purpose'];
+  const discovery = fields['Discovery'];
+
+  const isGuest =
+    embed.title?.toLowerCase().includes('guest') ||
+    fields['Register As']?.toLowerCase() === 'guest' ||
+    fields['Registration Type']?.toLowerCase() === 'guest';
+
+  return {
+    name,
+    discordUsername,
+    email,
+    registerAs: isGuest ? 'guest' : 'member',
+    sheetRow,
+    purpose,
+    discovery,
+  };
 }
 
 export interface CardMetadata {
@@ -135,4 +215,322 @@ export function formatCardContent(
   }
 
   return text;
+}
+
+/**
+ * Builds the embed for a matched registration card.
+ */
+export function buildMatchedRegistrationEmbed(data: RegistrationData, member: GuildMember): EmbedBuilder {
+  const isMember = data.registerAs === 'member';
+  const embed = new EmbedBuilder()
+    .setColor(isMember ? Colors.Green : Colors.Grey)
+    .setTitle(isMember ? 'New Member' : 'New Guest')
+    .setThumbnail(member.displayAvatarURL())
+    .addFields(
+      { name: 'Name', value: data.name },
+      { name: 'Discord @', value: `<@${member.id}>` },
+      { name: 'Discord Username', value: member.user.username || member.user.tag },
+    );
+
+  if (
+    data.discordUsername &&
+    data.discordUsername.toLowerCase() !== member.user.username.toLowerCase() &&
+    data.discordUsername.toLowerCase() !== member.user.tag.toLowerCase()
+  ) {
+    embed.addFields({ name: 'Submitted Username', value: data.discordUsername });
+  }
+
+  embed.addFields({ name: 'Email', value: data.email || 'N/A' }, { name: 'Sheet Row', value: data.sheetRow || 'N/A' });
+
+  if (data.purpose) embed.addFields({ name: 'Purpose of joining', value: data.purpose });
+  if (data.discovery) embed.addFields({ name: 'Discovery', value: data.discovery });
+
+  return embed;
+}
+
+/**
+ * Builds the action buttons for a matched registration card.
+ */
+export function buildMatchedActionRows(
+  isMember: boolean,
+  userAlreadyApproved: boolean,
+  allowChangeUser: boolean = true,
+): ActionRowBuilder<ButtonBuilder>[] {
+  const row = new ActionRowBuilder<ButtonBuilder>();
+
+  const remindBtn = new ButtonBuilder()
+    .setCustomId('remind-signup')
+    .setLabel('Remind')
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji('🔔');
+
+  const changeUserBtn = new ButtonBuilder()
+    .setCustomId('change-registration-user')
+    .setLabel('Change User')
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji('🔄');
+
+  if (userAlreadyApproved) {
+    const cancelBtn = new ButtonBuilder()
+      .setCustomId('cancel-approval')
+      .setLabel('Cancel Approval')
+      .setStyle(ButtonStyle.Danger);
+
+    row.addComponents(cancelBtn);
+
+    if (isMember) {
+      const engageBtn = new ButtonBuilder()
+        .setLabel('Engage')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective');
+
+      row.addComponents(engageBtn);
+    }
+
+    row.addComponents(remindBtn);
+  } else {
+    if (isMember) {
+      const approveBtn = new ButtonBuilder()
+        .setCustomId('approve-member')
+        .setLabel('Approve Member')
+        .setStyle(ButtonStyle.Success);
+
+      const engageBtn = new ButtonBuilder()
+        .setLabel('Engage')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective');
+
+      row.addComponents(approveBtn, engageBtn, remindBtn);
+    } else {
+      const approveGuestBtn = new ButtonBuilder()
+        .setCustomId('approve-guest')
+        .setLabel('Approve Guest')
+        .setStyle(ButtonStyle.Secondary);
+
+      row.addComponents(approveGuestBtn, remindBtn);
+    }
+  }
+
+  if (allowChangeUser) {
+    row.addComponents(changeUserBtn);
+  }
+
+  return [row];
+}
+
+/**
+ * Builds the embed for an unmatched registration card presenting candidate suggestions.
+ */
+export function buildUnmatchedRegistrationEmbed(
+  data: RegistrationData,
+  similarMatches: SimilarMemberMatch[],
+): EmbedBuilder {
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Gold)
+    .setTitle('⚠️ User not found in Discord — Select matching user')
+    .setDescription(
+      `Could not automatically match **"${data.discordUsername || data.name}"**.\nPlease select the user below from the top suggestions or use the server member picker:`,
+    )
+    .addFields(
+      { name: 'Name', value: data.name },
+      { name: 'Submitted Username', value: data.discordUsername || 'N/A' },
+      { name: 'Register As', value: data.registerAs === 'guest' ? 'Guest' : 'Member' },
+      { name: 'Email', value: data.email || 'N/A' },
+      { name: 'Sheet Row', value: data.sheetRow || 'N/A' },
+    );
+
+  if (similarMatches.length > 0) {
+    const suggestionsText = similarMatches
+      .map((m, i) => {
+        const matchPercent = Math.round(m.score * 100);
+        return `\`${i + 1}.\` <@${m.member.id}> (\`${m.member.user.username}\`) — **${matchPercent}% match**`;
+      })
+      .join('\n');
+
+    embed.addFields({ name: '🔍 Top Suggestions', value: suggestionsText });
+  } else {
+    embed.addFields({
+      name: '🔍 Suggestions',
+      value: '*No close username matches found in server. User may not have joined yet.*',
+    });
+  }
+
+  if (data.purpose) embed.addFields({ name: 'Purpose of joining', value: data.purpose });
+  if (data.discovery) embed.addFields({ name: 'Discovery', value: data.discovery });
+
+  return embed;
+}
+
+/**
+ * Builds the components (Select Menu, User Picker, Retry Button) for an unmatched registration card.
+ */
+export function buildUnmatchedActionRows(
+  similarMatches: SimilarMemberMatch[],
+): (
+  | ActionRowBuilder<StringSelectMenuBuilder>
+  | ActionRowBuilder<UserSelectMenuBuilder>
+  | ActionRowBuilder<ButtonBuilder>
+)[] {
+  const rows: (
+    | ActionRowBuilder<StringSelectMenuBuilder>
+    | ActionRowBuilder<UserSelectMenuBuilder>
+    | ActionRowBuilder<ButtonBuilder>
+  )[] = [];
+
+  // 1. Top suggestions dropdown (if any exist)
+  if (similarMatches.length > 0) {
+    const stringSelect = new StringSelectMenuBuilder()
+      .setCustomId('select-registration-user')
+      .setPlaceholder('Select from top 5 similar Discord users...')
+      .addOptions(
+        similarMatches.map((m, i) => {
+          const matchPercent = Math.round(m.score * 100);
+          const label = `${i + 1}. ${m.member.displayName} (@${m.member.user.username})`.slice(0, 100);
+          const desc = `${matchPercent}% match • Tag: ${m.member.user.tag}`.slice(0, 100);
+          return {
+            label,
+            value: m.member.id,
+            description: desc,
+            emoji: '👤',
+          };
+        }),
+      );
+
+    rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(stringSelect));
+  }
+
+  // 2. User Select Menu allowing picking ANY member from server
+  const userSelect = new UserSelectMenuBuilder()
+    .setCustomId('pick-registration-user')
+    .setPlaceholder('Or search & pick any member from server...');
+
+  rows.push(new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(userSelect));
+
+  // 3. Retry search button
+  const retryBtn = new ButtonBuilder()
+    .setCustomId('retry-registration-lookup')
+    .setLabel('Retry Search')
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji('🔄');
+
+  rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(retryBtn));
+
+  return rows;
+}
+
+const REGISTRATION_COMPONENT_IDS = new Set([
+  'approve-member',
+  'approveMember',
+  'approve-guest',
+  'approveGuest',
+  'cancel-approval',
+  'cancelApproval',
+  'remind-signup',
+  'remind',
+  'remind-member',
+  'remindMember',
+  'change-registration-user',
+  'select-registration-user',
+  'pick-registration-user',
+  'retry-registration-lookup',
+]);
+
+/**
+ * Checks whether a message has already been enriched with registration buttons or select menus.
+ */
+export function isMessageAlreadyEnriched(message: Message | undefined): boolean {
+  if (!message || !message.components || message.components.length === 0) {
+    return false;
+  }
+
+  for (const row of message.components) {
+    if ('components' in row && Array.isArray(row.components)) {
+      for (const component of row.components) {
+        if ('customId' in component && component.customId && REGISTRATION_COMPONENT_IDS.has(component.customId)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+export interface EnrichRegistrationResult {
+  success: boolean;
+  error?: string;
+  data?: RegistrationData;
+  member?: GuildMember | null;
+  sentMessage?: Message;
+}
+
+/**
+ * Enriches a raw registration message or embed into a formatted interactive registration card.
+ */
+export async function enrichRegistrationMessage(
+  message: Message,
+  options: { deleteOriginal?: boolean } = { deleteOriginal: true },
+): Promise<EnrichRegistrationResult> {
+  if (isMessageAlreadyEnriched(message)) {
+    return {
+      success: false,
+      error: 'This message is already an enriched registration card.',
+    };
+  }
+
+  const incomingEmbed = message.embeds[0];
+  if (!incomingEmbed) {
+    return { success: false, error: 'No embed found in the selected message.' };
+  }
+
+  const data = extractRegistrationDataFromCard(incomingEmbed);
+  if (!data || (!data.name && !data.discordUsername && !data.email)) {
+    return {
+      success: false,
+      error: 'The embed does not contain recognizable registration fields (Name, Discord Username, Email).',
+    };
+  }
+
+  let member = null;
+  if (message.guild && (data.discordUsername || data.name || data.email)) {
+    member = await findGuildMember(message.guild, data.discordUsername, { name: data.name, email: data.email });
+  }
+
+  const isMember = data.registerAs === 'member';
+  let embed: EmbedBuilder;
+  let components: (
+    | ActionRowBuilder<ButtonBuilder>
+    | ActionRowBuilder<StringSelectMenuBuilder>
+    | ActionRowBuilder<UserSelectMenuBuilder>
+  )[] = [];
+
+  if (!member) {
+    const similarMatches = message.guild
+      ? await findSimilarGuildMembers(message.guild, data.discordUsername, 5, { name: data.name, email: data.email })
+      : [];
+
+    embed = buildUnmatchedRegistrationEmbed(data, similarMatches);
+    components = buildUnmatchedActionRows(similarMatches);
+  } else {
+    const userAlreadyApproved = await isRegistrationAlreadyApproved(member, data.registerAs);
+    embed = buildMatchedRegistrationEmbed(data, member);
+    components = buildMatchedActionRows(isMember, userAlreadyApproved, true);
+  }
+
+  const channel = message.channel;
+  if (!channel || !('send' in channel)) {
+    return { success: false, error: 'Channel is not sendable.' };
+  }
+
+  const sentMessage = await channel.send({
+    content: '▬▬▬▬▬▬▬▬▬▬',
+    embeds: [embed],
+    components,
+  });
+
+  if (options.deleteOriginal) {
+    await message.delete().catch(() => {});
+  }
+
+  return { success: true, data, member, sentMessage };
 }

@@ -1,16 +1,6 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  Colors,
-  EmbedBuilder,
-  Events,
-  Message,
-  type Client,
-  type TextBasedChannel,
-} from 'discord.js';
+import { Events, Message, type Client, type TextBasedChannel } from 'discord.js';
 
-import { AppLogger, Config, ConfigKeys, channelCombo, findGuildMember, isRegistrationAlreadyApproved } from '../utils';
+import { AppLogger, Config, ConfigKeys, channelCombo, enrichRegistrationMessage } from '../utils';
 
 const logger = AppLogger.get('events').child('new-register');
 
@@ -37,142 +27,15 @@ export async function processRegistrationWebhook(message: Message, webhookId?: s
   }
 
   try {
-    const incomingEmbed = message.embeds[0];
-    if (!incomingEmbed) {
-      logger.warn(`No embed found in webhook message: ${message.id}`);
+    const result = await enrichRegistrationMessage(message, { deleteOriginal: true });
+    if (!result.success) {
+      logger.warn(`Failed to enrich webhook message (${message.id}): ${result.error}`);
       return false;
     }
-
-    const fields = incomingEmbed.fields.reduce(
-      (acc, field) => {
-        acc[field.name] = field.value;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-
-    const name = fields['Name'] || fields['Full Name'] || 'Unknown';
-    const discordUsername = fields['Discord Username'] || fields['Username'] || fields['Discord Tag'] || '';
-    const email = fields['Email'] || fields['WSU Email'] || '';
-    const registerAs = (fields['Register As'] || fields['Registration Type'] || 'member').toLowerCase();
-    const sheetRow = fields['Sheet Row'] || '';
-    const purpose = fields['Purpose'] || fields['Purpose of joining'];
-    const discovery = fields['Discovery'];
 
     logger.info(
-      `Processing registration - Name: ${name}, Username: ${discordUsername}, Type: ${registerAs}, Row: ${sheetRow}`,
+      `Successfully posted enriched registration card for: ${result.data?.discordUsername || result.data?.name}`,
     );
-
-    let member = null;
-    if (message.guild && discordUsername) {
-      member = await findGuildMember(message.guild, discordUsername);
-    }
-
-    const isMember = registerAs === 'member';
-    const userAlreadyApproved = Boolean(member && (await isRegistrationAlreadyApproved(member, registerAs)));
-
-    const enrichedEmbed = new EmbedBuilder();
-
-    if (!member) {
-      logger.warn(`User ${discordUsername} not found in Discord server.`);
-      enrichedEmbed
-        .setColor(Colors.Red)
-        .setTitle('User not found in Discord')
-        .addFields(
-          { name: 'Name', value: name },
-          { name: 'Discord Username', value: discordUsername || 'N/A' },
-          { name: 'Email', value: email || 'N/A' },
-          { name: 'Sheet Row', value: sheetRow || 'N/A' },
-        );
-
-      if (purpose) enrichedEmbed.addFields({ name: 'Purpose of joining', value: purpose });
-      if (discovery) enrichedEmbed.addFields({ name: 'Discovery', value: discovery });
-    } else {
-      logger.info(`User found in guild: ${member.user.tag} (${member.id})`);
-      enrichedEmbed
-        .setColor(isMember ? Colors.Green : Colors.Grey)
-        .setTitle(isMember ? 'New Member' : 'New Guest')
-        .setThumbnail(member.displayAvatarURL())
-        .addFields(
-          { name: 'Name', value: name },
-          { name: 'Discord @', value: `<@${member.id}>` },
-          { name: 'Discord Username', value: member.user.username || member.user.tag },
-          { name: 'Email', value: email || 'N/A' },
-          { name: 'Sheet Row', value: sheetRow || 'N/A' },
-        );
-
-      if (purpose) enrichedEmbed.addFields({ name: 'Purpose of joining', value: purpose });
-      if (discovery) enrichedEmbed.addFields({ name: 'Discovery', value: discovery });
-    }
-
-    const row = new ActionRowBuilder<ButtonBuilder>();
-
-    if (member) {
-      const remindBtn = new ButtonBuilder()
-        .setCustomId('remind-signup')
-        .setLabel('Remind')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🔔');
-
-      if (userAlreadyApproved) {
-        const cancelBtn = new ButtonBuilder()
-          .setCustomId('cancel-approval')
-          .setLabel('Cancel Approval')
-          .setStyle(ButtonStyle.Danger);
-
-        row.addComponents(cancelBtn);
-
-        if (isMember) {
-          const engageBtn = new ButtonBuilder()
-            .setLabel('Engage')
-            .setStyle(ButtonStyle.Link)
-            .setURL('https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective');
-
-          row.addComponents(engageBtn);
-        }
-
-        row.addComponents(remindBtn);
-      } else {
-        if (isMember) {
-          const approveBtn = new ButtonBuilder()
-            .setCustomId('approve-member')
-            .setLabel('Approve Member')
-            .setStyle(ButtonStyle.Success);
-
-          const engageBtn = new ButtonBuilder()
-            .setLabel('Engage')
-            .setStyle(ButtonStyle.Link)
-            .setURL('https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective');
-
-          row.addComponents(approveBtn, engageBtn, remindBtn);
-        } else {
-          const approveGuestBtn = new ButtonBuilder()
-            .setCustomId('approve-guest')
-            .setLabel('Approve Guest')
-            .setStyle(ButtonStyle.Secondary);
-
-          row.addComponents(approveGuestBtn, remindBtn);
-        }
-      }
-    }
-
-    const channel = message.channel;
-    if (!channel || !('send' in channel)) {
-      logger.warn(`Channel for message ${message.id} is not sendable.`);
-      return false;
-    }
-
-    await channel.send({
-      content: '▬▬▬▬▬▬▬▬▬▬',
-      embeds: [enrichedEmbed],
-      components: row.components.length > 0 ? [row] : [],
-    });
-
-    await message.delete().catch((delErr) => {
-      logger.warn(delErr, `Failed to delete original webhook message: ${message.id}`);
-    });
-
-    logger.info(`Successfully posted enriched registration card for: ${discordUsername || name}`);
     return true;
   } catch (err) {
     logger.error(err, `Error occurred while processing new register webhook (${message.id}):`);
