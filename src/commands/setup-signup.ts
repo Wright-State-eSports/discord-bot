@@ -13,10 +13,11 @@ import {
   type AnyComponentBuilder,
 } from 'discord.js';
 
-import { AppLogger } from '../utils';
+import { AppLogger, Config, ConfigKeys } from '../utils';
 
 /**
- * Admin-only command that posts the member onboarding sign-up card to the current channel.
+ * Command that posts the member onboarding sign-up card to the current channel.
+ * Allowed for Administrators and users with the bot-dev role configured in settings.
  * The card includes Engage, sign-up form, and guest form sections with buttons.
  */
 export default {
@@ -27,10 +28,22 @@ export default {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const logger = AppLogger.get('discord').child(['command', 'setup-signup']);
 
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    const botDevRoleId = await Config.get(ConfigKeys.Roles.BotDev);
+    const member = interaction.member;
+    const hasBotDevRole =
+      botDevRoleId &&
+      member &&
+      ('roles' in member
+        ? Array.isArray(member.roles)
+          ? member.roles.includes(botDevRoleId)
+          : member.roles.cache.has(botDevRoleId)
+        : false);
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+    if (!isAdmin && !hasBotDevRole) {
       logger.warn(`User ${interaction.user.tag} attempted to use the setup-signup command without permission.`);
       await interaction.editReply({
-        content: 'You do not have permission to use this command.',
+        content: '❌ You do not have permission to use this command.',
       });
       return;
     }

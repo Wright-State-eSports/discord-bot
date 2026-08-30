@@ -54,7 +54,7 @@ export async function handleRetryRegistrationLookup(interaction: ButtonInteracti
   if (member) {
     const isMember = data.registerAs === 'member';
     const userAlreadyApproved = await isRegistrationAlreadyApproved(member, data.registerAs);
-    const matchedEmbed = buildMatchedRegistrationEmbed(data, member);
+    const matchedEmbed = await buildMatchedRegistrationEmbed(data, member);
     const actionRows = buildMatchedActionRows(isMember, userAlreadyApproved, true);
 
     await interaction.editReply({

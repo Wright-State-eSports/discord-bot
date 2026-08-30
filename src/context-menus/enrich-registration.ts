@@ -38,19 +38,13 @@ export default {
     logger.info(`${userCombo(interaction)} triggered Enrich Registration on message ${targetMessage.id}`);
 
     try {
-      const result = await enrichRegistrationMessage(targetMessage, { deleteOriginal: true });
+      const result = await enrichRegistrationMessage(targetMessage, { deleteOriginal: true, force: true });
 
       if (!result.success) {
-        logger.warn(`Manual enrichment skipped or failed for message ${targetMessage.id}: ${result.error}`);
-        if (result.error === 'This message is already an enriched registration card.') {
-          await interaction.editReply({
-            content: 'ℹ️ This message is already an enriched registration card.',
-          });
-        } else {
-          await interaction.editReply({
-            content: `❌ Could not enrich registration: ${result.error}`,
-          });
-        }
+        logger.warn(`Manual enrichment failed for message ${targetMessage.id}: ${result.error}`);
+        await interaction.editReply({
+          content: `❌ Could not enrich registration: ${result.error}`,
+        });
         return;
       }
 

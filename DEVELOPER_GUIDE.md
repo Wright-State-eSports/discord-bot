@@ -85,11 +85,12 @@ Create `config.dev.json` at the project root:
 
 ##### `roles`
 
-| Key             | Path                  | Type     | Description                                 |
-| :-------------- | :-------------------- | :------- | :------------------------------------------ |
-| `raider`        | `roles.raider`        | `string` | Role ID for full members (Raiders)          |
-| `guest`         | `roles.guest`         | `string` | Role ID for guests                          |
-| `not-signed-up` | `roles.not-signed-up` | `string` | Role ID for users who haven't signed up yet |
+| Key             | Path                  | Type     | Description                                         |
+| :-------------- | :-------------------- | :------- | :-------------------------------------------------- |
+| `raider`        | `roles.raider`        | `string` | Role ID for full members (Raiders)                  |
+| `guest`         | `roles.guest`         | `string` | Role ID for guests                                  |
+| `not-signed-up` | `roles.not-signed-up` | `string` | Role ID for users who haven't signed up yet         |
+| `bot-dev`       | `roles.bot-dev`       | `string` | Role ID for bot developers (`setup-signup` command) |
 
 ##### `channels`
 

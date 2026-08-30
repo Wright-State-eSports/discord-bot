@@ -58,7 +58,7 @@ export async function handleSelectRegistrationUser(interaction: AnySelectMenuInt
   const isMember = registrationData.registerAs === 'member';
   const userAlreadyApproved = await isRegistrationAlreadyApproved(member, registrationData.registerAs);
 
-  const matchedEmbed = buildMatchedRegistrationEmbed(registrationData, member);
+  const matchedEmbed = await buildMatchedRegistrationEmbed(registrationData, member);
   const actionRows = buildMatchedActionRows(isMember, userAlreadyApproved, true);
 
   await interaction.update({

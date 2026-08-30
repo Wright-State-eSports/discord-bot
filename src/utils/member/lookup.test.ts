@@ -126,4 +126,194 @@ describe('Member Lookup & Similarity (Fuse.js)', () => {
       expect(isMessageAlreadyEnriched(messageWithMenu)).toBe(true);
     });
   });
+
+  describe('isRegistrationEmbed', () => {
+    it('returns true for valid new registration embeds', async () => {
+      const { isRegistrationEmbed } = await import('../registration/card');
+
+      const validEmbed = {
+        title: 'New Member',
+        fields: [
+          { name: 'Name', value: 'Jane Doe' },
+          { name: 'Discord Username', value: 'janedoe' },
+          { name: 'Email', value: 'jane@example.com' },
+        ],
+      } as unknown as any;
+
+      expect(isRegistrationEmbed(validEmbed)).toBe(true);
+    });
+
+    it('returns false for non-registration embeds (e.g., bot logs, announcements)', async () => {
+      const { isRegistrationEmbed } = await import('../registration/card');
+
+      const logEmbed = {
+        title: 'Bot Logs',
+        fields: [{ name: 'Event', value: 'User Joined' }],
+      } as unknown as any;
+
+      expect(isRegistrationEmbed(logEmbed)).toBe(false);
+
+      const generalEmbed = {
+        title: 'Server Announcement',
+        description: 'Welcome to the tournament!',
+      } as unknown as any;
+
+      expect(isRegistrationEmbed(generalEmbed)).toBe(false);
+      expect(isRegistrationEmbed(undefined)).toBe(false);
+    });
+  });
+
+  describe('extractRegistrationDataFromCard', () => {
+    it('correctly detects guest registration from title or field', async () => {
+      const { extractRegistrationDataFromCard } = await import('../registration/card');
+
+      const guestCardWithField = {
+        embeds: [
+          {
+            title: 'New Registration',
+            fields: [
+              { name: 'Name', value: 'Jane Doe' },
+              { name: 'Discord Username', value: 'janedoe' },
+              { name: 'Register As', value: 'Guest' },
+              { name: 'Email', value: 'jane@example.com' },
+            ],
+          },
+        ],
+      } as unknown as any;
+
+      const guestResult = extractRegistrationDataFromCard(guestCardWithField);
+      expect(guestResult?.registerAs).toBe('guest');
+      expect(guestResult?.name).toBe('Jane Doe');
+
+      const guestCardWithTitle = {
+        embeds: [
+          {
+            title: 'New Guest',
+            fields: [
+              { name: 'Full Name', value: 'Jane Doe' },
+              { name: 'Discord @', value: '<@123456789>' },
+              { name: 'Discord Username', value: 'janedoe' },
+            ],
+          },
+        ],
+      } as unknown as any;
+
+      const titleResult = extractRegistrationDataFromCard(guestCardWithTitle);
+      expect(titleResult?.registerAs).toBe('guest');
+
+      const guestCardWithAffiliation = {
+        embeds: [
+          {
+            title: 'Registration Form Submission',
+            fields: [
+              { name: 'Full Name', value: 'Jane Doe' },
+              { name: 'Discord Tag', value: 'janedoe' },
+              { name: 'Affiliation', value: 'Guest' },
+            ],
+          },
+        ],
+      } as unknown as any;
+
+      const affiliationResult = extractRegistrationDataFromCard(guestCardWithAffiliation);
+      expect(affiliationResult?.registerAs).toBe('guest');
+
+      const guestCardWithFormName = {
+        embeds: [
+          {
+            title: 'New Signup',
+            fields: [
+              { name: 'Full Name', value: 'Jane Doe' },
+              { name: 'Discord Username', value: 'janedoe' },
+              { name: 'Form Type', value: 'Guest Sign up' },
+            ],
+          },
+        ],
+      } as unknown as any;
+
+      const formNameResult = extractRegistrationDataFromCard(guestCardWithFormName);
+      expect(formNameResult?.registerAs).toBe('guest');
+    });
+
+    it('correctly detects member registration', async () => {
+      const { extractRegistrationDataFromCard } = await import('../registration/card');
+
+      const memberCard = {
+        embeds: [
+          {
+            title: 'New Member',
+            fields: [
+              { name: 'Name', value: 'John Smith' },
+              { name: 'Discord Username', value: 'johnsmith' },
+              { name: 'Email', value: 'johnsmith@wright.edu' },
+            ],
+          },
+        ],
+      } as unknown as any;
+
+      const result = extractRegistrationDataFromCard(memberCard);
+      expect(result?.registerAs).toBe('member');
+      expect(result?.name).toBe('John Smith');
+    });
+  });
+
+  describe('buildMatchedRegistrationEmbed', () => {
+    it('creates standard member embed when member does not have guest role', async () => {
+      const { buildMatchedRegistrationEmbed } = await import('../registration/card');
+
+      const mockMember = {
+        id: '123456789',
+        user: { username: 'johnsmith', tag: 'johnsmith#0000' },
+        displayAvatarURL: () => 'https://example.com/avatar.png',
+        roles: { cache: new Map() },
+      } as unknown as any;
+
+      const embed = await buildMatchedRegistrationEmbed(
+        {
+          name: 'John Smith',
+          discordUsername: 'johnsmith',
+          email: 'john@wright.edu',
+          registerAs: 'member',
+          sheetRow: '5',
+        },
+        mockMember,
+      );
+
+      expect(embed.data.title).toBe('New Member');
+      expect(embed.data.fields?.some((f) => f.name === 'Register As' && f.value === 'Member')).toBe(true);
+    });
+
+    it('creates guest upgrade embed with notices when member has guest role', async () => {
+      const { buildMatchedRegistrationEmbed } = await import('../registration/card');
+      const { Config, ConfigKeys } = await import('../config');
+
+      const guestRoleId = (await Config.get(ConfigKeys.Roles.Guest)) || 'guest-role-id';
+
+      const mockRoles = new Map();
+      mockRoles.set(guestRoleId, { id: guestRoleId });
+
+      const mockMember = {
+        id: '123456789',
+        user: { username: 'janedoe', tag: 'janedoe#0000' },
+        displayAvatarURL: () => 'https://example.com/avatar.png',
+        roles: { cache: mockRoles },
+      } as unknown as any;
+
+      const embed = await buildMatchedRegistrationEmbed(
+        {
+          name: 'Jane Doe',
+          discordUsername: 'janedoe',
+          email: 'jane@wright.edu',
+          registerAs: 'member',
+          sheetRow: '8',
+        },
+        mockMember,
+      );
+
+      expect(embed.data.title).toBe('New Member (Guest Upgrade)');
+      expect(embed.data.fields?.some((f) => f.name === 'ℹ️ Guest Upgrade')).toBe(true);
+      expect(embed.data.fields?.some((f) => f.name === 'Register As' && f.value.includes('Upgrading from Guest'))).toBe(
+        true,
+      );
+    });
+  });
 });

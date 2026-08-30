@@ -77,6 +77,7 @@ export const ConfigKeys = {
     Raider: key('raider'),
     Guest: key('guest'),
     NotSignedUp: key('not-signed-up'),
+    BotDev: key('bot-dev'),
   }),
 
   // Channels

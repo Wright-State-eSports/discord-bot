@@ -15,6 +15,7 @@ import {
 import {
   findGuildMember,
   findSimilarGuildMembers,
+  hasGuestRole,
   isRegistrationAlreadyApproved,
   type SimilarMemberMatch,
 } from '../member';
@@ -88,26 +89,86 @@ export function extractRegistrationDataFromCard(
 
   if (!embed || !embed.fields) return null;
 
-  const fields = embed.fields.reduce(
-    (acc, f) => {
-      acc[f.name] = f.value;
-      return acc;
-    },
-    {} as Record<string, string>,
-  );
+  const normalizedFields = new Map<string, string>();
+  for (const f of embed.fields) {
+    const key = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    normalizedFields.set(key, f.value.trim());
+  }
 
-  const name = fields['Name'] || fields['Full Name'] || 'Unknown';
+  const getField = (...candidates: string[]): string | undefined => {
+    for (const c of candidates) {
+      const normalized = c.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const val = normalizedFields.get(normalized);
+      if (val) return val;
+    }
+    return undefined;
+  };
+
+  const name = getField('name', 'fullname', 'realname', 'registrantname') || 'Unknown';
   const discordUsername =
-    fields['Submitted Username'] || fields['Discord Username'] || fields['Username'] || fields['Discord Tag'] || '';
-  const email = fields['Email'] || fields['WSU Email'] || '';
-  const sheetRow = fields['Sheet Row'] || '';
-  const purpose = fields['Purpose of joining'] || fields['Purpose'];
-  const discovery = fields['Discovery'];
+    getField('submittedusername', 'discordusername', 'username', 'discordtag', 'discord', 'tag') || '';
+  const email = getField('email', 'wsuemail', 'emailaddress') || '';
+  const sheetRow = getField('sheetrow', 'row') || '';
+  const purpose = getField('purposeofjoining', 'purpose', 'reason');
+  const discovery = getField('discovery', 'howdidyouhear');
 
-  const isGuest =
-    embed.title?.toLowerCase().includes('guest') ||
-    fields['Register As']?.toLowerCase() === 'guest' ||
-    fields['Registration Type']?.toLowerCase() === 'guest';
+  // Check title, description, footer, author for guest designation
+  const titleLower = embed.title?.toLowerCase() || '';
+  const descLower = embed.description?.toLowerCase() || '';
+  const footerLower = embed.footer?.text?.toLowerCase() || '';
+  const authorLower = embed.author?.name?.toLowerCase() || '';
+  const textHasGuest =
+    titleLower.includes('guest') ||
+    descLower.includes('guest') ||
+    footerLower.includes('guest') ||
+    authorLower.includes('guest');
+
+  const rawRegisterAs = getField(
+    'registeras',
+    'registrationtype',
+    'registeringas',
+    'form',
+    'formname',
+    'formtitle',
+    'formtype',
+    'signuptype',
+    'membershiptype',
+    'membership',
+    'membertype',
+    'type',
+    'role',
+    'status',
+    'usertype',
+    'affiliation',
+    'accounttype',
+    'classification',
+    'studentorguest',
+    'wsuaffiliate',
+  );
+  const fieldHasGuest = rawRegisterAs?.toLowerCase().includes('guest');
+
+  let anyFieldHasGuest = false;
+  for (const [key, val] of normalizedFields.entries()) {
+    const valLower = val.toLowerCase();
+    if (
+      key.includes('guest') &&
+      (valLower === 'yes' || valLower === 'true' || valLower === '1' || valLower === 'guest')
+    ) {
+      anyFieldHasGuest = true;
+      break;
+    }
+    if (
+      valLower === 'guest' ||
+      valLower.startsWith('guest ') ||
+      valLower.includes('guest signup') ||
+      valLower.includes('guest registration')
+    ) {
+      anyFieldHasGuest = true;
+      break;
+    }
+  }
+
+  const isGuest = Boolean(textHasGuest || fieldHasGuest || anyFieldHasGuest);
 
   return {
     name,
@@ -220,11 +281,16 @@ export function formatCardContent(
 /**
  * Builds the embed for a matched registration card.
  */
-export function buildMatchedRegistrationEmbed(data: RegistrationData, member: GuildMember): EmbedBuilder {
+export async function buildMatchedRegistrationEmbed(
+  data: RegistrationData,
+  member: GuildMember,
+): Promise<EmbedBuilder> {
   const isMember = data.registerAs === 'member';
+  const isGuestUpgrading = isMember && (await hasGuestRole(member));
+
   const embed = new EmbedBuilder()
     .setColor(isMember ? Colors.Green : Colors.Grey)
-    .setTitle(isMember ? 'New Member' : 'New Guest')
+    .setTitle(isMember ? (isGuestUpgrading ? 'New Member (Guest Upgrade)' : 'New Member') : 'New Guest')
     .setThumbnail(member.displayAvatarURL())
     .addFields(
       { name: 'Name', value: data.name },
@@ -240,7 +306,20 @@ export function buildMatchedRegistrationEmbed(data: RegistrationData, member: Gu
     embed.addFields({ name: 'Submitted Username', value: data.discordUsername });
   }
 
-  embed.addFields({ name: 'Email', value: data.email || 'N/A' }, { name: 'Sheet Row', value: data.sheetRow || 'N/A' });
+  const registerAsDisplay = isMember ? (isGuestUpgrading ? 'Member 🔄 *(Upgrading from Guest)*' : 'Member') : 'Guest';
+
+  embed.addFields(
+    { name: 'Register As', value: registerAsDisplay },
+    { name: 'Email', value: data.email || 'N/A' },
+    { name: 'Sheet Row', value: data.sheetRow || 'N/A' },
+  );
+
+  if (isGuestUpgrading) {
+    embed.addFields({
+      name: 'ℹ️ Guest Upgrade',
+      value: 'User currently has the **Guest** role. Approving will assign **Raider** and remove **Guest**.',
+    });
+  }
 
   if (data.purpose) embed.addFields({ name: 'Purpose of joining', value: data.purpose });
   if (data.discovery) embed.addFields({ name: 'Discovery', value: data.discovery });
@@ -456,6 +535,49 @@ export function isMessageAlreadyEnriched(message: Message | undefined): boolean 
   return false;
 }
 
+/**
+ * Validates whether an embed is a valid registration embed.
+ * Checks for registration signatures and required form fields (Name, Discord Username, Email/Row).
+ */
+export function isRegistrationEmbed(embed: Embed | undefined): boolean {
+  if (!embed) return false;
+
+  const titleLower = embed.title?.toLowerCase() || '';
+
+  const isKnownTitle =
+    titleLower.includes('new member') ||
+    titleLower.includes('new guest') ||
+    titleLower.includes('registration') ||
+    titleLower.includes('signup') ||
+    titleLower.includes('sign up') ||
+    titleLower.includes('user not found in discord');
+
+  if (!embed.fields || embed.fields.length === 0) {
+    return isKnownTitle;
+  }
+
+  const normalizedKeys = embed.fields.map((f) => f.name.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+  const hasName = normalizedKeys.some((k) => k === 'name' || k === 'fullname' || k === 'realname');
+  const hasDiscord = normalizedKeys.some(
+    (k) =>
+      k === 'discord' || k === 'discordusername' || k === 'submittedusername' || k === 'discordtag' || k === 'username',
+  );
+  const hasOtherRegField = normalizedKeys.some(
+    (k) =>
+      k === 'email' ||
+      k === 'wsuemail' ||
+      k === 'sheetrow' ||
+      k === 'row' ||
+      k === 'registeras' ||
+      k === 'registrationtype' ||
+      k === 'purposeofjoining' ||
+      k === 'purpose',
+  );
+
+  return hasName && hasDiscord && (hasOtherRegField || isKnownTitle);
+}
+
 export interface EnrichRegistrationResult {
   success: boolean;
   error?: string;
@@ -469,9 +591,9 @@ export interface EnrichRegistrationResult {
  */
 export async function enrichRegistrationMessage(
   message: Message,
-  options: { deleteOriginal?: boolean } = { deleteOriginal: true },
+  options: { deleteOriginal?: boolean; force?: boolean } = { deleteOriginal: true, force: false },
 ): Promise<EnrichRegistrationResult> {
-  if (isMessageAlreadyEnriched(message)) {
+  if (!options.force && isMessageAlreadyEnriched(message)) {
     return {
       success: false,
       error: 'This message is already an enriched registration card.',
@@ -481,6 +603,13 @@ export async function enrichRegistrationMessage(
   const incomingEmbed = message.embeds[0];
   if (!incomingEmbed) {
     return { success: false, error: 'No embed found in the selected message.' };
+  }
+
+  if (!isRegistrationEmbed(incomingEmbed)) {
+    return {
+      success: false,
+      error: 'The selected message is not a valid new registration embed (missing registration fields).',
+    };
   }
 
   const data = extractRegistrationDataFromCard(incomingEmbed);
@@ -513,7 +642,7 @@ export async function enrichRegistrationMessage(
     components = buildUnmatchedActionRows(similarMatches);
   } else {
     const userAlreadyApproved = await isRegistrationAlreadyApproved(member, data.registerAs);
-    embed = buildMatchedRegistrationEmbed(data, member);
+    embed = await buildMatchedRegistrationEmbed(data, member);
     components = buildMatchedActionRows(isMember, userAlreadyApproved, true);
   }
 
@@ -522,8 +651,10 @@ export async function enrichRegistrationMessage(
     return { success: false, error: 'Channel is not sendable.' };
   }
 
+  const cardContent = formatCardContent(message);
+
   const sentMessage = await channel.send({
-    content: '▬▬▬▬▬▬▬▬▬▬',
+    content: cardContent,
     embeds: [embed],
     components,
   });
