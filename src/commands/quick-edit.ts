@@ -15,13 +15,13 @@ import { AppLogger, MessageSelection, channelCombo, userCombo } from '../utils';
 const MESSAGE_URL_REGEX = /https:\/\/(?:canary\.|ptb\.)?discord\.com\/channels\/(?:\d+|@me)\/(\d+)\/(\d+)/;
 
 /**
- * Admin-only command to edit the content and/or attachment of a bot-authored message.
+ * Admin-only command to quickly edit the content and/or attachment of a bot-authored message inline.
  * Accepts a message ID, message URL, or a selection made via the "Select Message to Edit" context menu.
  */
 export default {
   data: new SlashCommandBuilder()
-    .setName('edit-message')
-    .setDescription('Edit a message sent by the bot.')
+    .setName('quick-edit')
+    .setDescription('Quickly edit a message sent by the bot inline.')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addStringOption((option) => option.setName('content').setDescription('The new message content.').setRequired(true))
     .addStringOption((option) =>
@@ -69,7 +69,7 @@ export default {
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const logger = AppLogger.get('discord').child(['command', 'edit-message']);
+    const logger = AppLogger.get('discord').child(['command', 'quick-edit']);
 
     const newContent = interaction.options.getString('content', true);
     const messageInput = interaction.options.getString('message');
@@ -96,7 +96,7 @@ export default {
     }
 
     if (!targetMessageId) {
-      logger.warn(`${userCombo(interaction)} ran /edit-message with no message specified and no active selection.`);
+      logger.warn(`${userCombo(interaction)} ran /quick-edit with no message specified and no active selection.`);
       await interaction.editReply({
         content:
           '❌ **No message specified or selected!**\n\n' +
@@ -135,7 +135,7 @@ export default {
       try {
         channel = await channel.fetch();
       } catch (error) {
-        logger.error(error, 'Failed to fetch partial channel for edit-message.');
+        logger.error(error, 'Failed to fetch partial channel for quick-edit.');
         await interaction.editReply({
           content: '❌ Failed to fetch the specified channel. Please try again later.',
         });

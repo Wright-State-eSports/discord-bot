@@ -60,7 +60,11 @@ export default {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(cancelButton);
 
     const response = await interaction.reply({
-      content: `✅ Selected message \`${targetMessage.id}\` in <#${targetMessage.channelId}>.\n\nNow run </edit-message:0> (or type \`/edit-message\`) to update its content and/or attachment.`,
+      content:
+        `✅ Selected message \`${targetMessage.id}\` in <#${targetMessage.channelId}>.\n\n` +
+        `Now run:\n` +
+        `• </edit-announcement:0> (or \`/edit-announcement\`) to open the **Announcement Studio** in edit mode.\n` +
+        `• </quick-edit:0> (or \`/quick-edit\`) to quickly update text/attachments inline.`,
       components: [row],
       flags: MessageFlags.Ephemeral,
       withResponse: true,
