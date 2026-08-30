@@ -59,6 +59,7 @@ async function handleMemberSignup(interaction: ChatInputCommandInteraction, logg
     }
   }
 
+  // '?usp=pp_url&entry.1322096694' is important, as it is how we can prefill their discord username
   const message =
     'Please sign up and join our engage using this link: https://wright.edu/esports\n\n' +
     'Fill out this pre-filled form. **Your username should be autofilled** and you can skip the first question.\n' +
@@ -98,7 +99,8 @@ async function handleGuestSignup(interaction: ChatInputCommandInteraction, logge
     }
   }
 
-  const message = 'Please fill out this form for guest sign up: https://forms.gle/jbBbWaeyYU3qBa6F9';
+  // '?usp=pp_url&entry.1322096694' is important, as it is how we can prefill their discord username
+  const message = `Please fill out this form for guest sign up: https://docs.google.com/forms/d/e/1FAIpQLSdgxrNbHiUvgRc07fX_oByuHkmFiu4c3qpte7QLdUtxcB6u3g/viewform?usp=pp_url&entry.1322096694=${interaction.user.tag}`;
   logger.info(`Sent Guest Signup Message to ${userCombo(interaction)}`);
 
   await interaction.editReply({ content: message });
