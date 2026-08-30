@@ -5,12 +5,14 @@ import { handleApproveGuest } from './approve-guest';
 import { handleApproveMember } from './approve-member';
 import { handleCancelApproval } from './cancel-approval';
 import { handleCancelMessageSelection } from './cancel-message-selection';
+import { handleRemind } from './remind';
 import { handleSignUpForm } from './signup-form';
 
 export * from './approve-guest';
 export * from './approve-member';
 export * from './cancel-approval';
 export * from './cancel-message-selection';
+export * from './remind';
 export * from './signup-form';
 
 /**
@@ -43,6 +45,13 @@ export default {
         case 'cancel-approval':
         case 'cancelApproval':
           await handleCancelApproval(interaction);
+          break;
+
+        case 'remind-signup':
+        case 'remind':
+        case 'remind-member':
+        case 'remindMember':
+          await handleRemind(interaction);
           break;
 
         case 'signup-form':

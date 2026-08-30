@@ -1,6 +1,6 @@
 import { GuildMember, MessageFlags, type ButtonInteraction } from 'discord.js';
 
-import { AppLogger, DiscordLogger, hasRaiderRole, userCombo } from '../../utils';
+import { AppLogger, DiscordLogger, channelCombo, hasRaiderRole, userCombo } from '../../utils';
 
 /** Replies ephemerally with a pre-filled Google Forms sign-up link for the clicking user. */
 export async function handleSignUpForm(interaction: ButtonInteraction): Promise<void> {
@@ -22,7 +22,7 @@ export async function handleSignUpForm(interaction: ButtonInteraction): Promise<
 
   await DiscordLogger.log(
     logger.info,
-    `${userCombo(interaction)} clicked sign-up form button in ${interaction.channel ? `<#${interaction.channel.id}>` : 'DM'}`,
+    `${userCombo(interaction)} clicked sign-up form button in ${channelCombo(interaction.channel)}`,
   );
 
   const message =

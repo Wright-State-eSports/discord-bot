@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  PermissionFlagsBits,
   type ButtonInteraction,
   type Message,
   type TextBasedChannel,
@@ -14,7 +15,7 @@ import {
   ConfigKeys,
   DiscordLogger,
   extractUserIdFromCard,
-  formatNotificationSubtext,
+  formatCardContent,
   promoteToGuest,
   userCombo,
 } from '../../utils';
@@ -25,6 +26,15 @@ export async function handleApproveGuest(interaction: ButtonInteraction): Promis
   logger.info(`${userCombo(interaction)} pressed Approve Guest`);
 
   if (!interaction.guild) return;
+
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    logger.warn(`${userCombo(interaction)} attempted to use Approve Guest without Administrator permissions.`);
+    await interaction.reply({
+      content: '❌ You do not have permission to use this button.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
 
   const userId = extractUserIdFromCard(interaction);
   if (!userId) {
@@ -52,7 +62,7 @@ export async function handleApproveGuest(interaction: ButtonInteraction): Promis
     const member = await interaction.guild.members.fetch(userId);
     await promoteToGuest(member);
     logger.info(`Assigned Guest role to ${member.user.tag} (${member.id})`);
-    await DiscordLogger.log(logger.info, `${userCombo(interaction)} approved guest <@${userId}> (${member.user.tag})`);
+    await DiscordLogger.log(logger.info, `${userCombo(interaction)} approved guest ${userCombo(member)}`);
 
     // Notify help channel and record the message
     let sentMsg: Message | null = null;
@@ -69,11 +79,19 @@ export async function handleApproveGuest(interaction: ButtonInteraction): Promis
       .setLabel('Cancel Approval')
       .setStyle(ButtonStyle.Danger);
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disapprove);
+    const remind = new ButtonBuilder()
+      .setCustomId('remind-signup')
+      .setLabel('Remind')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🔔');
 
-    // Update message content with subtext tracking the approval notification
-    const notifText = sentMsg ? formatNotificationSubtext(helpChannelId, sentMsg.id) : '';
-    await interaction.editReply({ content: `▬▬▬▬▬▬▬▬▬▬${notifText}`, components: [row] });
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disapprove, remind);
+
+    // Update message content with subtext tracking the approval notification (preserving existing reminder metadata)
+    const updatedContent = formatCardContent(interaction.message, {
+      notification: sentMsg ? { channelId: helpChannelId, messageId: sentMsg.id } : null,
+    });
+    await interaction.editReply({ content: updatedContent, components: [row] });
     logger.info(`Updated message buttons to Cancel Approval for guest ${userId}`);
   } catch (err) {
     logger.error(err, `Error approving guest ${userId}`);

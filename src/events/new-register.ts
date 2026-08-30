@@ -10,7 +10,7 @@ import {
   type TextBasedChannel,
 } from 'discord.js';
 
-import { AppLogger, Config, ConfigKeys, findGuildMember, isRegistrationAlreadyApproved } from '../utils';
+import { AppLogger, Config, ConfigKeys, channelCombo, findGuildMember, isRegistrationAlreadyApproved } from '../utils';
 
 const logger = AppLogger.get('events').child('new-register');
 
@@ -108,6 +108,12 @@ export async function processRegistrationWebhook(message: Message, webhookId?: s
     const row = new ActionRowBuilder<ButtonBuilder>();
 
     if (member) {
+      const remindBtn = new ButtonBuilder()
+        .setCustomId('remind-signup')
+        .setLabel('Remind')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🔔');
+
       if (userAlreadyApproved) {
         const cancelBtn = new ButtonBuilder()
           .setCustomId('cancel-approval')
@@ -124,6 +130,8 @@ export async function processRegistrationWebhook(message: Message, webhookId?: s
 
           row.addComponents(engageBtn);
         }
+
+        row.addComponents(remindBtn);
       } else {
         if (isMember) {
           const approveBtn = new ButtonBuilder()
@@ -136,14 +144,14 @@ export async function processRegistrationWebhook(message: Message, webhookId?: s
             .setStyle(ButtonStyle.Link)
             .setURL('https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective');
 
-          row.addComponents(approveBtn, engageBtn);
+          row.addComponents(approveBtn, engageBtn, remindBtn);
         } else {
           const approveGuestBtn = new ButtonBuilder()
             .setCustomId('approve-guest')
             .setLabel('Approve Guest')
             .setStyle(ButtonStyle.Secondary);
 
-          row.addComponents(approveGuestBtn);
+          row.addComponents(approveGuestBtn, remindBtn);
         }
       }
     }
@@ -193,7 +201,9 @@ export async function sweepUnprocessedRegistrations(client: Client): Promise<voi
       return;
     }
 
-    sweepLogger.info(`Sweeping up to ${limit} recent messages in <#${channelId}> for unprocessed registrations...`);
+    sweepLogger.info(
+      `Sweeping up to ${limit} recent messages in ${channelCombo(channel, channelId)} for unprocessed registrations...`,
+    );
     const messages = await channel.messages.fetch({ limit });
 
     // Webhook messages in this channel from the registration webhook that haven't been replaced yet

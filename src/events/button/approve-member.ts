@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  PermissionFlagsBits,
   type ButtonInteraction,
   type Message,
   type TextBasedChannel,
@@ -14,8 +15,9 @@ import {
   ConfigKeys,
   DiscordLogger,
   extractUserIdFromCard,
-  formatNotificationSubtext,
+  formatCardContent,
   promoteToRaider,
+  syncRegistrationSheet,
   userCombo,
 } from '../../utils';
 
@@ -25,6 +27,15 @@ export async function handleApproveMember(interaction: ButtonInteraction): Promi
   logger.info(`${userCombo(interaction)} pressed Approve Member`);
 
   if (!interaction.guild) return;
+
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    logger.warn(`${userCombo(interaction)} attempted to use Approve Member without Administrator permissions.`);
+    await interaction.reply({
+      content: '❌ You do not have permission to use this button.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
 
   const userId = extractUserIdFromCard(interaction);
   if (!userId) {
@@ -52,7 +63,7 @@ export async function handleApproveMember(interaction: ButtonInteraction): Promi
     const member = await interaction.guild.members.fetch(userId);
     await promoteToRaider(member);
     logger.info(`Assigned Raider role to ${member.user.tag} (${member.id})`);
-    await DiscordLogger.log(logger.info, `${userCombo(interaction)} approved member <@${userId}> (${member.user.tag})`);
+    await DiscordLogger.log(logger.info, `${userCombo(interaction)} approved member ${userCombo(member)}`);
 
     // Notify help channel and record the message
     let sentMsg: Message | null = null;
@@ -69,11 +80,7 @@ export async function handleApproveMember(interaction: ButtonInteraction): Promi
       const nameField = embed?.fields.find((f) => f.name === 'Name')?.value || '';
       const rowField = embed?.fields.find((f) => f.name === 'Sheet Row')?.value || '';
 
-      await fetch(process.env.SCRIPT_LINK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'approve', name: nameField, rowNum: rowField }),
-      }).catch((err) => logger.warn(err, 'Failed to update Google Sheet for member approval'));
+      await syncRegistrationSheet({ mode: 'approve', name: nameField, rowNum: rowField });
     }
 
     // Switch button to Cancel Approval
@@ -87,11 +94,19 @@ export async function handleApproveMember(interaction: ButtonInteraction): Promi
       .setStyle(ButtonStyle.Link)
       .setURL('https://wright.campuslabs.com/engage/actioncenter/organization/esports/roster/Roster/prospective');
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disapprove, engage);
+    const remind = new ButtonBuilder()
+      .setCustomId('remind-signup')
+      .setLabel('Remind')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🔔');
 
-    // Update message content with subtext tracking the approval notification
-    const notifText = sentMsg ? formatNotificationSubtext(helpChannelId, sentMsg.id) : '';
-    await interaction.editReply({ content: `▬▬▬▬▬▬▬▬▬▬${notifText}`, components: [row] });
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disapprove, engage, remind);
+
+    // Update message content with subtext tracking the approval notification (preserving existing reminder metadata)
+    const updatedContent = formatCardContent(interaction.message, {
+      notification: sentMsg ? { channelId: helpChannelId, messageId: sentMsg.id } : null,
+    });
+    await interaction.editReply({ content: updatedContent, components: [row] });
     logger.info(`Updated message buttons to Cancel Approval for ${userId}`);
   } catch (err) {
     logger.error(err, `Error approving member ${userId}`);

@@ -3,6 +3,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
+  PermissionFlagsBits,
   type ButtonInteraction,
   type TextBasedChannel,
 } from 'discord.js';
@@ -12,8 +14,10 @@ import {
   DiscordLogger,
   extractNotificationIds,
   extractUserIdFromCard,
+  formatCardContent,
   revertGuest,
   revertRaider,
+  syncRegistrationSheet,
   userCombo,
 } from '../../utils';
 
@@ -23,6 +27,15 @@ export async function handleCancelApproval(interaction: ButtonInteraction): Prom
   logger.info(`${userCombo(interaction)} pressed Cancel Approval`);
 
   if (!interaction.guild) return;
+
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    logger.warn(`${userCombo(interaction)} attempted to use Cancel Approval without Administrator permissions.`);
+    await interaction.reply({
+      content: '❌ You do not have permission to use this button.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
 
   const userId = extractUserIdFromCard(interaction);
   if (!userId) {
@@ -73,24 +86,23 @@ export async function handleCancelApproval(interaction: ButtonInteraction): Prom
         const nameField = embed?.fields.find((f) => f.name === 'Name')?.value || '';
         const rowField = embed?.fields.find((f) => f.name === 'Sheet Row')?.value || '';
 
-        await fetch(process.env.SCRIPT_LINK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'disapprove', username: nameField, rowNum: rowField }),
-        }).catch((err) => logger.warn(err, 'Failed to update Google Sheet for cancellation'));
+        await syncRegistrationSheet({ mode: 'disapprove', name: nameField, rowNum: rowField });
       }
     }
 
-    await DiscordLogger.log(
-      logger.info,
-      `${userCombo(interaction)} cancelled approval for <@${userId}> (${member.user.tag})`,
-    );
+    await DiscordLogger.log(logger.info, `${userCombo(interaction)} cancelled approval for ${userCombo(member)}`);
 
     // Reset button back to Approve
     const approve = new ButtonBuilder()
       .setCustomId(isGuest ? 'approve-guest' : 'approve-member')
       .setLabel(isGuest ? 'Approve Guest' : 'Approve Member')
       .setStyle(isGuest ? ButtonStyle.Secondary : ButtonStyle.Success);
+
+    const remind = new ButtonBuilder()
+      .setCustomId('remind-signup')
+      .setLabel('Remind')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🔔');
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(approve);
 
@@ -102,11 +114,16 @@ export async function handleCancelApproval(interaction: ButtonInteraction): Prom
       row.addComponents(engage);
     }
 
-    // Reset content back to base divider and ensure footer is cleared
+    row.addComponents(remind);
+
+    // Reset content back to base divider (clearing notification tracking while preserving any reminder metadata)
     const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0]).setFooter(null);
+    const updatedContent = formatCardContent(interaction.message, {
+      notification: null,
+    });
 
     await interaction.editReply({
-      content: '▬▬▬▬▬▬▬▬▬▬',
+      content: updatedContent,
       embeds: [updatedEmbed],
       components: [row],
     });
