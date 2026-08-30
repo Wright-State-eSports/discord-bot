@@ -1,18 +1,24 @@
 import { Events, type Interaction } from 'discord.js';
 
 import { AppLogger, userCombo } from '../../utils';
+import { handleAnnounceStudioButton } from './announce-studio';
 import { handleApproveGuest } from './approve-guest';
 import { handleApproveMember } from './approve-member';
 import { handleCancelApproval } from './cancel-approval';
 import { handleCancelMessageSelection } from './cancel-message-selection';
+import { handleChangeRegistrationUser } from './change-user';
 import { handleRemind } from './remind';
+import { handleRetryRegistrationLookup } from './retry-lookup';
 import { handleSignUpForm } from './signup-form';
 
+export * from './announce-studio';
 export * from './approve-guest';
 export * from './approve-member';
 export * from './cancel-approval';
 export * from './cancel-message-selection';
+export * from './change-user';
 export * from './remind';
+export * from './retry-lookup';
 export * from './signup-form';
 
 /**
@@ -64,7 +70,20 @@ export default {
           await handleCancelMessageSelection(interaction);
           break;
 
+        case 'change-registration-user':
+        case 'changeRegistrationUser':
+          await handleChangeRegistrationUser(interaction);
+          break;
+
+        case 'retry-registration-lookup':
+        case 'retryRegistrationLookup':
+          await handleRetryRegistrationLookup(interaction);
+          break;
+
         default:
+          if (customId.startsWith('announce-studio-')) {
+            await handleAnnounceStudioButton(interaction);
+          }
           break;
       }
     } catch (error) {

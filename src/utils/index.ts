@@ -1,5 +1,6 @@
 // Barrel File for utils
 
+export * from './announcement';
 export * from './command';
 export * from './config';
 export * from './event';
