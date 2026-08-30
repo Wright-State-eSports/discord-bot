@@ -52,4 +52,6 @@ jobs:
           APP_NAME="${{ steps.env.outputs.app_name }}"
           RUN_SCRIPT="${{ steps.env.outputs.run_script }}"
 
-          pm2 restart "$APP_NAME" || pm2 start "bun run $RUN_SCRIPT" --name "$APP_NAME"
+          echo "Starting/restarting PM2 app '$APP_NAME' with command 'bun run $RUN_SCRIPT'..."
+          pm2 restart "$APP_NAME" --update-env || pm2 start "bun run $RUN_SCRIPT" --name "$APP_NAME"
+          pm2 save
