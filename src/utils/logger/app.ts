@@ -35,12 +35,7 @@ function getLogsDirectory(): string {
 
 const logsDir = getLogsDirectory();
 
-// Direct console pretty stream
-const prettyStream = pinoPretty({
-  colorize: true,
-  messageFormat: '[{breadcrumbs}] {msg}',
-  ignore: 'pid,hostname,breadcrumbs,scopes',
-});
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Direct synchronous file destinations (Bun compatible, avoiding thread-stream worker threads)
 const appLogStream = pino.destination({
@@ -55,15 +50,26 @@ const errorLogStream = pino.destination({
   mkdir: true,
 });
 
+const streams: pino.StreamEntry[] = [
+  { stream: appLogStream, level: 'info' },
+  { stream: errorLogStream, level: 'error' },
+];
+
+// Pretty print to console only in development
+if (!isProduction) {
+  const prettyStream = pinoPretty({
+    colorize: true,
+    messageFormat: '[{breadcrumbs}] {msg}',
+    ignore: 'pid,hostname,breadcrumbs,scopes',
+  });
+  streams.unshift({ stream: prettyStream, level: 'debug' });
+}
+
 const _BASE_PINO = pino(
   {
     level: 'debug',
   },
-  pino.multistream([
-    { stream: prettyStream, level: 'debug' },
-    { stream: appLogStream, level: 'info' },
-    { stream: errorLogStream, level: 'error' },
-  ]),
+  pino.multistream(streams),
 );
 
 // Standard pino logger type used by the app.
