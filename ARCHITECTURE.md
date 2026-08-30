@@ -174,8 +174,8 @@ const childLogger = logger.child('my-command'); // adds 'my-command' to the brea
 Outputs to:
 
 - **Console** (pretty-printed with `pino-pretty`, `debug` level)
-- **`logs/app.log`** (`info` level and above)
-- **`logs/error.log`** (`error` level and above)
+- **`app.log`** (`info` level and above; stored in `/home/runner/logs` in production, `<cwd>/logs` in development)
+- **`error.log`** (`error` level and above; stored in `/home/runner/logs` in production, `<cwd>/logs` in development)
 
 ### `DiscordLogger` (Automated Webhook Sink)
 

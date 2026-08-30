@@ -6,10 +6,34 @@ import pinoPretty from 'pino-pretty';
 // ==========================================
 // 1. Base Logger Setup
 // ==========================================
-const logsDir = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+function getLogsDirectory(): string {
+  if (process.env.LOGS_DIR) {
+    return process.env.LOGS_DIR;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    const prodDir = '/home/runner/logs';
+    try {
+      if (!fs.existsSync(prodDir)) {
+        fs.mkdirSync(prodDir, { recursive: true });
+      }
+      return prodDir;
+    } catch {
+      const fallbackDir = path.join(process.cwd(), 'logs');
+      if (!fs.existsSync(fallbackDir)) {
+        fs.mkdirSync(fallbackDir, { recursive: true });
+      }
+      return fallbackDir;
+    }
+  }
+
+  const devDir = path.join(process.cwd(), 'logs');
+  if (!fs.existsSync(devDir)) {
+    fs.mkdirSync(devDir, { recursive: true });
+  }
+  return devDir;
 }
+
+const logsDir = getLogsDirectory();
 
 // Direct console pretty stream
 const prettyStream = pinoPretty({
